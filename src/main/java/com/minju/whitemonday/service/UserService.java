@@ -3,6 +3,7 @@ package com.minju.whitemonday.service;
 import com.minju.whitemonday.dto.SignupRequestDto;
 import com.minju.whitemonday.entity.User;
 import com.minju.whitemonday.entity.UserRoleEnum;
+import com.minju.whitemonday.jwt.EncryptionUtil;
 import com.minju.whitemonday.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EncryptionUtil encryptionUtil;
 
     // ADMIN_TOKEN
     private final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
@@ -27,8 +29,11 @@ public class UserService {
 
         String username = requestDto.getUsername();
         String password = passwordEncoder.encode(requestDto.getPassword());
+        String email = encryptionUtil.encrypt(requestDto.getEmail());
+        String address = encryptionUtil.encrypt(requestDto.getAddress());
+        String name = encryptionUtil.encrypt(requestDto.getName());
 
-        log.info("Encrypted password: {}", password);
+        log.info("Encrypted data - Email: {}, Address: {}, Name: {}", email, address, name);
 
         // 회원 중복 확인
         Optional<User> checkUsername = userRepository.findByUsername(username);
@@ -38,7 +43,6 @@ public class UserService {
         }
 
         // email 중복확인
-        String email = requestDto.getEmail();
         Optional<User> checkEmail = userRepository.findByEmail(email);
         if (checkEmail.isPresent()) {
             throw new IllegalArgumentException("중복된 Email 입니다.");
@@ -55,8 +59,9 @@ public class UserService {
 
         // 사용자 등록
         User user = new User(username, password, email, role);
+        user.setAddress(address);
+        user.setName(name);
         userRepository.save(user);
         log.info("User saved successfully with username: {}", requestDto.getUsername());
-
     }
 }
