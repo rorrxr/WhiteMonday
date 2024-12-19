@@ -50,6 +50,11 @@ dependencies {
 
 // json
     implementation 'org.json:json:20230227'
+
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.mockito:mockito-core:5.5.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
+    testImplementation 'io.rest-assured:rest-assured:5.3.0'
 }
 
 tasks.named('test') {
