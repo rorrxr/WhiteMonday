@@ -40,4 +40,7 @@ public class User {
         this.email = email;
         this.role = role;
     }
+
+    private boolean isEnabled = false; // 기본값 비활성화
+
 }

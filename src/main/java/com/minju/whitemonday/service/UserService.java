@@ -3,10 +3,16 @@ package com.minju.whitemonday.service;
 import com.minju.whitemonday.dto.SignupRequestDto;
 import com.minju.whitemonday.entity.User;
 import com.minju.whitemonday.entity.UserRoleEnum;
+import com.minju.whitemonday.entity.VerificationToken;
 import com.minju.whitemonday.jwt.EncryptionUtil;
 import com.minju.whitemonday.repository.UserRepository;
+import com.minju.whitemonday.repository.VerificationTokenRepository;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +25,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EncryptionUtil encryptionUtil;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final JavaMailSender mailSender;
 
     // ADMIN_TOKEN
     private final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
@@ -63,5 +71,29 @@ public class UserService {
         user.setName(name);
         userRepository.save(user);
         log.info("User saved successfully with username: {}", requestDto.getUsername());
+        // 이메일 인증 토큰 생성
+        VerificationToken token = new VerificationToken(requestDto.getEmail());
+        verificationTokenRepository.save(token);
+
+        // 이메일 발송
+        sendVerificationEmail(requestDto.getEmail(), token.getToken());
+    }
+
+    private void sendVerificationEmail(String email, String token) {
+        String subject = "이메일 인증";
+        String url = "http://localhost:8080/api/v1/verify-email?token=" + token; // 토큰 검증 URL
+        String content = "<p>회원가입을 완료하려면 아래 링크를 클릭하세요:</p>"
+                + "<a href=\"" + url + "\">이메일 인증하기</a>";
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(email);
+            helper.setSubject(subject);
+            helper.setText(content, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("이메일 발송 실패", e);
+        }
     }
 }
