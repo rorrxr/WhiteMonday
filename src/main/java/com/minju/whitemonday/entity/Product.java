@@ -1,5 +1,6 @@
 package com.minju.whitemonday.entity;
 
+import com.minju.whitemonday.dto.ProductRequestDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,4 +35,15 @@ public class Product {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public Product(String title, String description, int price, int stock, boolean isFlashSale, LocalDateTime flashSaleStartTime) {
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.stock = stock;
+        this.isFlashSale = isFlashSale;
+        this.flashSaleStartTime = flashSaleStartTime;
+    }
+
+
 }
