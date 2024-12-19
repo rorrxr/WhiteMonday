@@ -1,5 +1,6 @@
 package com.minju.whitemonday.controller;
 
+import com.minju.whitemonday.dto.ResponseData;
 import com.minju.whitemonday.dto.SignupRequestDto;
 import com.minju.whitemonday.dto.UserInfoDto;
 import com.minju.whitemonday.entity.UserRoleEnum;
@@ -10,6 +11,7 @@ import com.minju.whitemonday.security.UserDetailsImpl;
 import com.minju.whitemonday.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -28,8 +30,18 @@ public class UserController {
     private final UserRepository userRepository;
     private final VerificationTokenRepository tokenRepository;
 
+    @GetMapping("/user/login-page")
+    public ResponseEntity<ResponseData<?>> loginPage() {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseData.success());
+    }
+
+    @GetMapping("/user/signup")
+    public ResponseEntity<ResponseData<?>>  signupPage() {
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseData.success());
+    }
+
     @GetMapping("/user-info")
-    public ResponseEntity<UserInfoDto> join(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<UserInfoDto> getUserInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         // UserDetailsImpl에서 사용자 정보 가져오기
         String username = userDetails.getUsername();
         UserRoleEnum role = userDetails.getUser().getRole();
