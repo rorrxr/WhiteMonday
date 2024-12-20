@@ -31,7 +31,7 @@ public class ProductService {
 
         // 저장된 엔터티를 응답 DTO로 변환
         return new ProductResponseDto(
-                savedProduct.getProductId(),
+                savedProduct.getId(),
                 savedProduct.getTitle(),
                 savedProduct.getDescription(),
                 savedProduct.getPrice(),
@@ -47,7 +47,7 @@ public class ProductService {
     public List<ProductResponseDto> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(product -> new ProductResponseDto(
-                        product.getProductId(),
+                        product.getId(),
                         product.getTitle(),
                         product.getDescription(),
                         product.getPrice(),
@@ -66,7 +66,7 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
         return new ProductResponseDto(
-                product.getProductId(),
+                product.getId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),

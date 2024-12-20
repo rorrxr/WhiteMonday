@@ -4,6 +4,7 @@ import com.minju.whitemonday.jwt.JwtUtil;
 import com.minju.whitemonday.security.JwtAuthenticationFilter;
 import com.minju.whitemonday.security.JwtAuthorizationFilter;
 import com.minju.whitemonday.security.UserDetailsServiceImpl;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -53,31 +54,36 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // CSRF 설정
-        http.csrf((csrf) -> csrf.disable());
+        http.csrf(csrf -> csrf.disable());
 
-        // 기본 설정인 Session 방식은 사용하지 않고 JWT 방식을 사용하기 위한 설정
-        http.sessionManagement((sessionManagement) ->
+        http.sessionManagement(sessionManagement ->
                 sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        http.authorizeHttpRequests((authorizeHttpRequests) ->
+        http.authorizeHttpRequests(authorizeHttpRequests ->
                 authorizeHttpRequests
-                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // resources 접근 허용 설정
-                        .requestMatchers("/").permitAll() // 메인 페이지 요청 허가
-                        .requestMatchers("/api/user/**").permitAll() // '/api/user/'로 시작하는 요청 모두 접근 허가
-                        .requestMatchers("/api/v1/send-verification-email", "/api/v1/verify-email").permitAll() // 이메일 인증 허용
+                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+                        .requestMatchers("/").permitAll()
+                        .requestMatchers("/api/user/**").permitAll()
+                        .requestMatchers("/api/v1/send-verification-email", "/api/v1/verify-email").permitAll()
                         .requestMatchers("/api/products", "/api/products/**").permitAll()
-                        .anyRequest().authenticated() // 그 외 모든 요청 인증처리
+                        .requestMatchers("/api/wishlist/**").authenticated()
+                        .anyRequest().authenticated()
         );
 
-        http.formLogin((formLogin) ->
-                formLogin
-                        .loginPage("/api/user/login-page").permitAll()
+        // 기본 로그인 폼 및 HTTP 기본 인증 비활성화
+        http.formLogin(formLogin -> formLogin.loginPage("/api/user/login-page").permitAll());
+        http.httpBasic().disable();
+
+        // 인증되지 않은 요청에 대해 401 상태 코드 반환 설정
+        http.exceptionHandling(exceptionHandling ->
+                exceptionHandling.authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Unauthorized");
+                })
         );
 
-        // 필터 관리
-        http.addFilterBefore(jwtAuthorizationFilter(), JwtAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

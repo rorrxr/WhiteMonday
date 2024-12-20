@@ -30,28 +30,31 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
+        String token = jwtUtil.getJwtFromHeader(req);
+        log.info("Token from header: {}", token);
 
-        String tokenValue = jwtUtil.getJwtFromHeader(req);
-
-        if (StringUtils.hasText(tokenValue)) {
-
-            if (!jwtUtil.validateToken(tokenValue)) {
-                log.error("Token Error");
+        if (StringUtils.hasText(token)) {
+            if (!jwtUtil.validateToken(token)) {
+                log.error("Invalid JWT token");
+                filterChain.doFilter(req, res);
                 return;
             }
 
-            Claims info = jwtUtil.getUserInfoFromToken(tokenValue);
+            Claims claims = jwtUtil.getUserInfoFromToken(token);
+            log.info("Extracted username: {}", claims.getSubject());
 
             try {
-                setAuthentication(info.getSubject());
+                setAuthentication(claims.getSubject());
             } catch (Exception e) {
-                log.error(e.getMessage());
-                return;
+                log.error("Failed to set authentication: {}", e.getMessage());
             }
+        } else {
+            log.warn("No JWT token found in the request header");
         }
 
         filterChain.doFilter(req, res);
     }
+
 
     // 인증 처리
     public void setAuthentication(String username) {
