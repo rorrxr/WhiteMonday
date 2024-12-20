@@ -35,4 +35,3 @@ public class VerificationToken {
         this.expiresAt = this.createdAt.plusHours(1); // 토큰 유효시간 1시간
     }
 }
-

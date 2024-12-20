@@ -69,25 +69,4 @@ public class UserController {
         userService.signup(requestDto);
         return ResponseEntity.ok("Signup successful");
     }
-
-    @GetMapping("/api/v1/verify-email")
-    public String verifyEmail(@RequestParam("token") String token) {
-        VerificationToken verificationToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
-
-        if (verificationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("토큰이 만료되었습니다.");
-        }
-
-        verificationToken.setVerified(true);
-        tokenRepository.save(verificationToken);
-
-        // 이메일을 기준으로 사용자를 활성화
-        userRepository.findByEmail(verificationToken.getEmail()).ifPresent(user -> {
-            user.setEnabled(true); // 활성화 상태로 변경
-            userRepository.save(user);
-        });
-
-        return "이메일 인증이 완료되었습니다!";
-    }
 }
