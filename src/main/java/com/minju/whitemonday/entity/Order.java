@@ -28,11 +28,11 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private String orderStatus; // e.g., "PENDING", "COMPLETED"
+    private String orderStatus;
     private int totalAmount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> orderItems = new ArrayList<>(); // 빈 리스트로 초기화
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;
