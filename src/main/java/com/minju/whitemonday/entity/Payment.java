@@ -25,9 +25,9 @@ public class Payment {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    private String paymentStatus; // e.g., "PAID", "FAILED"
+    private String paymentStatus;
     private LocalDateTime paymentDate;
-    private String paymentMethod; // e.g., "CREDIT_CARD", "PAYPAL"
+    private String paymentMethod;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

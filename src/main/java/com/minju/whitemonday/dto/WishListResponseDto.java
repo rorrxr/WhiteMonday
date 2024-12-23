@@ -14,6 +14,8 @@ public class WishListResponseDto {
     private Long id;
     private Long productId;
     private int quantity;
+    private String productDetailUrl;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -23,5 +25,6 @@ public class WishListResponseDto {
         this.quantity = wishlist.getQuantity();
         this.createdAt = wishlist.getCreatedAt();
         this.updatedAt = wishlist.getUpdatedAt();
+        this.productDetailUrl = "/api/products/" + wishlist.getProduct().getId();
     }
 }
