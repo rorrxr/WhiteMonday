@@ -1,6 +1,8 @@
 package com.minju.whitemonday.security;
 
 import com.minju.whitemonday.jwt.JwtUtil;
+import com.minju.whitemonday.repository.UserRepository;
+import com.minju.whitemonday.service.LogoutService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,6 +24,56 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+
+//    public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService, LogoutService logoutService, UserRepository userRepository) {
+//        this.jwtUtil = jwtUtil;
+//        this.userDetailsService = userDetailsService;
+//        this.logoutService = logoutService;
+//        this.userRepository = userRepository;
+//    }
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
+//        String token = jwtUtil.getJwtFromHeader(req);
+//
+//        if (StringUtils.hasText(token)) {
+//            log.info("Extracted token: {}", token);
+//
+//            if (!jwtUtil.validateToken(token)) {
+//                log.error("Invalid JWT token");
+//                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                res.getWriter().write("Invalid JWT");
+//                return;
+//            }
+//
+//            // 블랙리스트 확인
+//            if (logoutService.isTokenBlacklisted(token)) {
+//                log.error("Token is blacklisted: {}", token);
+//                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                res.getWriter().write("Token is blacklisted");
+//                return;
+//            }
+//
+//            Claims claims = jwtUtil.getUserInfoFromToken(token);
+//            String username = claims.getSubject();
+//
+//            log.info("Extracted username: {}", username);
+//
+//            if (username != null) {
+//                setAuthentication(username); // 인증 정보 설정
+//            }
+//        }
+//
+//        filterChain.doFilter(req, res); // 필터 체인 진행
+//    }
+//
+//    private void setAuthentication(String username) {
+//        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+//        Authentication authentication = new UsernamePasswordAuthenticationToken(
+//                userDetails, null, userDetails.getAuthorities()
+//        );
+//        SecurityContextHolder.getContext().setAuthentication(authentication);
+//        log.info("SecurityContext set with user: {}", username);
+//    }
 
     public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
         this.jwtUtil = jwtUtil;

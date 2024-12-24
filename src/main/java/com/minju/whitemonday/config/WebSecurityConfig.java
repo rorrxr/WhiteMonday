@@ -1,9 +1,11 @@
 package com.minju.whitemonday.config;
 
 import com.minju.whitemonday.jwt.JwtUtil;
+import com.minju.whitemonday.repository.UserRepository;
 import com.minju.whitemonday.security.JwtAuthenticationFilter;
 import com.minju.whitemonday.security.JwtAuthorizationFilter;
 import com.minju.whitemonday.security.UserDetailsServiceImpl;
+import com.minju.whitemonday.service.LogoutService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class WebSecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final LogoutService logoutService;
+    private final UserRepository userRepository;
     private final AuthenticationConfiguration authenticationConfiguration;
 
     @Bean
@@ -49,7 +53,7 @@ public class WebSecurityConfig {
 
     @Bean
     public JwtAuthorizationFilter jwtAuthorizationFilter() {
-        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
+        return new JwtAuthorizationFilter(jwtUtil, userDetailsService, logoutService, userRepository);
     }
 
     @Bean
@@ -68,6 +72,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/send-verification-email", "/api/v1/verify-email").permitAll()
                         .requestMatchers("/api/products", "/api/products/**").permitAll()
                         .requestMatchers("/api/wishlist/**").authenticated()
+                        .requestMatchers("/api/user/logout").authenticated() // 로그아웃 요청 인증 필요
                         .anyRequest().authenticated()
         );
 

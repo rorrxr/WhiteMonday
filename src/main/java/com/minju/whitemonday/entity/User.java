@@ -29,6 +29,9 @@ public class User {
     private UserRoleEnum role;
 
     @Column(nullable = true)
+    private Long lastPasswordUpdateTime = System.currentTimeMillis(); // 비밀번호 변경 시점 초기화
+
+    @Column(nullable = true)
     private String address;
 
     @Column(nullable = true)
@@ -42,5 +45,4 @@ public class User {
     }
 
     private boolean isEnabled = false; // 기본값 비활성화
-
 }

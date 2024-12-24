@@ -5,6 +5,7 @@ import com.minju.whitemonday.entity.User;
 import com.minju.whitemonday.entity.UserRoleEnum;
 import com.minju.whitemonday.entity.VerificationToken;
 import com.minju.whitemonday.jwt.EncryptionUtil;
+import com.minju.whitemonday.jwt.JwtUtil;
 import com.minju.whitemonday.repository.UserRepository;
 import com.minju.whitemonday.repository.VerificationTokenRepository;
 import jakarta.mail.MessagingException;
@@ -18,18 +19,21 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EncryptionUtil encryptionUtil;
     private final VerificationTokenRepository verificationTokenRepository;
     private final JavaMailSender mailSender;
+    private final JwtUtil jwtUtil;
+    private final LogoutService logoutService;
 
     // ADMIN_TOKEN
     private final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
+
     // 회원가입
     public void signup(SignupRequestDto requestDto) {
         log.info("Starting user signup for username: {}", requestDto.getUsername());
@@ -49,7 +53,7 @@ public class UserService {
             throw new IllegalArgumentException("중복된 사용자가 존재합니다.");
         }
 
-        // email 중복확인
+        // Email 중복확인
         Optional<User> checkEmail = userRepository.findByEmail(email);
         if (checkEmail.isPresent()) {
             throw new IllegalArgumentException("중복된 Email 입니다.");
@@ -70,5 +74,34 @@ public class UserService {
         user.setName(name);
         userRepository.save(user);
         log.info("User saved successfully with username: {}", requestDto.getUsername());
+    }
+
+    // 로그인
+    public String login(String username, String password) {
+        log.info("Starting login process for username: {}", username);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    log.error("Invalid username: {}", username);
+                    return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+                });
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            log.error("Invalid password for username: {}", username);
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // JWT 생성
+        String token = jwtUtil.createToken(username, user.getRole());
+        log.info("Generated JWT for username: {}", username);
+
+        return token;
+    }
+
+    // 로그아웃
+    public void logout(String token) {
+        log.info("Logging out token: {}", token);
+        logoutService.invalidateToken(token);
+        log.info("Token invalidated successfully.");
     }
 }
