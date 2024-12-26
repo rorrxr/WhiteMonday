@@ -11,12 +11,14 @@ import com.minju.whitemonday.repository.VerificationTokenRepository;
 import com.minju.whitemonday.security.UserDetailsImpl;
 import com.minju.whitemonday.service.LogoutService;
 import com.minju.whitemonday.service.UserService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -67,22 +69,45 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7); // "Bearer " 제거
+    public ResponseEntity<String> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            log.error("Authorization header is missing or invalid: {}", authorizationHeader);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing Authorization header");
         }
 
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
         log.info("Logging out token: {}", token);
 
-        if (jwtUtil.validateToken(token)) {
-            logoutService.invalidateToken(token); // 블랙리스트 추가
-            log.info("Token invalidated successfully: {}", token);
+        try {
+            // 토큰 검증
+            if (jwtUtil.validateToken(token)) {
+                logoutService.invalidateToken(token); // 블랙리스트에 추가
+                log.info("Token invalidated successfully: {}", token);
+
+                // SecurityContext 초기화
+                SecurityContextHolder.clearContext();
+
+                return ResponseEntity.ok("Logged out successfully");
+            } else {
+                log.warn("Token validation failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            }
+        } catch (ExpiredJwtException e) {
+            log.warn("Token expired but adding to blacklist for safety");
+            logoutService.invalidateToken(token); // 만료된 토큰도 블랙리스트에 추가
+
+            // SecurityContext 초기화
+            SecurityContextHolder.clearContext();
+
             return ResponseEntity.ok("Logged out successfully");
-        } else {
-            log.error("Invalid token: {}", token);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+        } catch (Exception e) {
+            log.error("Unexpected error during logout: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Logout failed");
         }
     }
+
+
+
 
     // 4. 사용자 정보 조회
     @GetMapping("/info")

@@ -24,98 +24,95 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final LogoutService logoutService;
+    private final UserRepository userRepository;
 
-//    public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService, LogoutService logoutService, UserRepository userRepository) {
-//        this.jwtUtil = jwtUtil;
-//        this.userDetailsService = userDetailsService;
-//        this.logoutService = logoutService;
-//        this.userRepository = userRepository;
-//    }
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
-//        String token = jwtUtil.getJwtFromHeader(req);
-//
-//        if (StringUtils.hasText(token)) {
-//            log.info("Extracted token: {}", token);
-//
-//            if (!jwtUtil.validateToken(token)) {
-//                log.error("Invalid JWT token");
-//                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//                res.getWriter().write("Invalid JWT");
-//                return;
-//            }
-//
-//            // 블랙리스트 확인
-//            if (logoutService.isTokenBlacklisted(token)) {
-//                log.error("Token is blacklisted: {}", token);
-//                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//                res.getWriter().write("Token is blacklisted");
-//                return;
-//            }
-//
-//            Claims claims = jwtUtil.getUserInfoFromToken(token);
-//            String username = claims.getSubject();
-//
-//            log.info("Extracted username: {}", username);
-//
-//            if (username != null) {
-//                setAuthentication(username); // 인증 정보 설정
-//            }
-//        }
-//
-//        filterChain.doFilter(req, res); // 필터 체인 진행
-//    }
-//
-//    private void setAuthentication(String username) {
-//        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-//        Authentication authentication = new UsernamePasswordAuthenticationToken(
-//                userDetails, null, userDetails.getAuthorities()
-//        );
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
-//        log.info("SecurityContext set with user: {}", username);
-//    }
-
-    public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+    public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService, LogoutService logoutService, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.logoutService = logoutService;
+        this.userRepository = userRepository;
     }
-
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
         String token = jwtUtil.getJwtFromHeader(req);
-        log.info("Token from header: {}", token);
 
-        if (StringUtils.hasText(token)) {
-            if (!jwtUtil.validateToken(token)) {
-                log.error("Invalid JWT token");
-                filterChain.doFilter(req, res);
-                return;
-            }
-
-            Claims claims = jwtUtil.getUserInfoFromToken(token);
-            log.info("Extracted username: {}", claims.getSubject());
-
-            try {
-                setAuthentication(claims.getSubject());
-            } catch (Exception e) {
-                log.error("Failed to set authentication: {}", e.getMessage());
-            }
+        if (token == null) {
+            log.warn("No Authorization header found in the request");
         } else {
-            log.warn("No JWT token found in the request header");
+            log.info("Authorization token: {}", token);
+        }
+
+        if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
+            Claims claims = jwtUtil.getUserInfoFromToken(token);
+            String username = claims.getSubject();
+
+            if (username != null) {
+                setAuthentication(username);
+            }
         }
 
         filterChain.doFilter(req, res);
     }
 
+    private void setAuthentication(String username) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    // 인증 처리
-    public void setAuthentication(String username) {
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        Authentication authentication = createAuthentication(username);
-        context.setAuthentication(authentication);
-
-        SecurityContextHolder.setContext(context);
+        // 로그 추가
+        log.info("SecurityContext set with user: {}", username);
+        log.info("Authentication in SecurityContext: {}", SecurityContextHolder.getContext().getAuthentication());
     }
+
+
+
+
+    // --------
+
+//    public JwtAuthorizationFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+//        this.jwtUtil = jwtUtil;
+//        this.userDetailsService = userDetailsService;
+//    }
+//
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
+//        String token = jwtUtil.getJwtFromHeader(req);
+//        log.info("Token from header: {}", token);
+//
+//        if (StringUtils.hasText(token)) {
+//            if (!jwtUtil.validateToken(token)) {
+//                log.error("Invalid JWT token");
+//                filterChain.doFilter(req, res);
+//                return;
+//            }
+//
+//            Claims claims = jwtUtil.getUserInfoFromToken(token);
+//            log.info("Extracted username: {}", claims.getSubject());
+//
+//            try {
+//                setAuthentication(claims.getSubject());
+//            } catch (Exception e) {
+//                log.error("Failed to set authentication: {}", e.getMessage());
+//            }
+//        } else {
+//            log.warn("No JWT token found in the request header");
+//        }
+//
+//        filterChain.doFilter(req, res);
+//    }
+//
+//
+//    // 인증 처리
+//    public void setAuthentication(String username) {
+//        SecurityContext context = SecurityContextHolder.createEmptyContext();
+//        Authentication authentication = createAuthentication(username);
+//        context.setAuthentication(authentication);
+//
+//        SecurityContextHolder.setContext(context);
+//    }
 
     // 인증 객체 생성
     private Authentication createAuthentication(String username) {

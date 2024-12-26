@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,7 +59,7 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable());
+        http.csrf(AbstractHttpConfigurer::disable);
 
         http.sessionManagement(sessionManagement ->
                 sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -67,20 +68,17 @@ public class WebSecurityConfig {
         http.authorizeHttpRequests(authorizeHttpRequests ->
                 authorizeHttpRequests
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers("/").permitAll()
-                        .requestMatchers("/api/user/**").permitAll()
+                        .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
                         .requestMatchers("/api/v1/send-verification-email", "/api/v1/verify-email").permitAll()
-                        .requestMatchers("/api/products", "/api/products/**").permitAll()
+                        .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/api/wishlist/**").authenticated()
-                        .requestMatchers("/api/user/logout").authenticated() // 로그아웃 요청 인증 필요
+                        .requestMatchers("/api/user/logout").authenticated()
                         .anyRequest().authenticated()
         );
 
-        // 기본 로그인 폼 및 HTTP 기본 인증 비활성화
-        http.formLogin(formLogin -> formLogin.loginPage("/api/user/login-page").permitAll());
-        http.httpBasic().disable();
+        http.formLogin(AbstractHttpConfigurer::disable);
+        http.httpBasic(AbstractHttpConfigurer::disable);
 
-        // 인증되지 않은 요청에 대해 401 상태 코드 반환 설정
         http.exceptionHandling(exceptionHandling ->
                 exceptionHandling.authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -93,4 +91,7 @@ public class WebSecurityConfig {
 
         return http.build();
     }
+
+
+
 }

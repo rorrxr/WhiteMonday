@@ -56,8 +56,10 @@ public class JwtUtil {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(7);
+        } else {
+            log.warn("Invalid or missing Authorization header");
+            return null;
         }
-        return null;
     }
 
     // 토큰 검증

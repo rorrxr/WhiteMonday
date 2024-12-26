@@ -10,11 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LogoutService {
     private final ConcurrentHashMap<String, Long> tokenBlacklist = new ConcurrentHashMap<>();
 
+    // 토큰 블랙리스트 추가
     public void invalidateToken(String token) {
         tokenBlacklist.put(token, System.currentTimeMillis());
         log.info("Token invalidated: {}", token);
     }
 
+    // 블랙리스트 확인
     public boolean isTokenBlacklisted(String token) {
         boolean isBlacklisted = tokenBlacklist.containsKey(token);
         log.info("Is token blacklisted? {}", isBlacklisted);
