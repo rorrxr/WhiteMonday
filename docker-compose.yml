@@ -3,6 +3,11 @@ version: "3.8"
 services:
   application:
     container_name: docker-compose-whitemonday
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ENCRYPTION_SECRET_KEY=${ENCRYPTION_SECRET_KEY}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
     build:
       context: .
       dockerfile: Dockerfile
