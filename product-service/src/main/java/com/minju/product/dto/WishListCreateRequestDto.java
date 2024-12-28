@@ -1,4 +1,4 @@
-package com.minju.whitemonday.wishlist.dto;
+package com.minju.product.dto;
 
 import lombok.*;
 

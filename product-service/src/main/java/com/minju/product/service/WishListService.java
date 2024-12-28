@@ -1,13 +1,12 @@
-package com.minju.whitemonday.wishlist.service;
+package com.minju.product.service;
 
-import com.minju.whitemonday.wishlist.dto.WishListCreateRequestDto;
-import com.minju.whitemonday.wishlist.dto.WishListResponseDto;
-import com.minju.whitemonday.wishlist.dto.WishListUpdateRequestDto;
+import com.minju.product.dto.WishListCreateRequestDto;
+import com.minju.product.dto.WishListResponseDto;
+import com.minju.product.dto.WishListUpdateRequestDto;
 import com.minju.product.entity.Product;
-import com.minju.whitemonday.user.entity.User;
-import com.minju.whitemonday.wishlist.entity.WishList;
+import com.minju.product.entity.WishList;
 import com.minju.product.repository.ProductRepository;
-import com.minju.whitemonday.wishlist.repository.WishListRepository;
+import com.minju.product.repository.WishListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

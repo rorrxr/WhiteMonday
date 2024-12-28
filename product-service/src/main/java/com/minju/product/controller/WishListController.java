@@ -1,10 +1,8 @@
-package com.minju.whitemonday.wishlist.controller;
+package com.minju.product.controller;
 
-import com.minju.whitemonday.wishlist.dto.WishListCreateRequestDto;
-import com.minju.whitemonday.wishlist.dto.WishListUpdateRequestDto;
-import com.minju.whitemonday.wishlist.dto.WishListResponseDto;
-import com.minju.whitemonday.user.service.UserDetailsImpl;
-import com.minju.whitemonday.wishlist.service.WishListService;
+import com.minju.product.dto.WishListCreateRequestDto;
+import com.minju.product.dto.WishListResponseDto;
+import com.minju.product.service.WishListService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,6 +1,6 @@
-package com.minju.whitemonday.wishlist.dto;
+package com.minju.product.dto;
 
-import com.minju.whitemonday.wishlist.entity.WishList;
+import com.minju.product.entity.WishList;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

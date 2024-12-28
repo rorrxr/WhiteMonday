@@ -1,8 +1,8 @@
-package com.minju.whitemonday.wishlist.repository;
+package com.minju.product.repository;
 
 import com.minju.product.entity.Product;
 import com.minju.whitemonday.user.entity.User;
-import com.minju.whitemonday.wishlist.entity.WishList;
+import com.minju.product.entity.WishList;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
