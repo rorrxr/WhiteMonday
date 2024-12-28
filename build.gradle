@@ -34,6 +34,7 @@ dependencies {
 
     implementation project("user-service")
     implementation project("product-service")
+    implementation project("order-service")
 
     // 이메일 전송
     implementation 'org.springframework.boot:spring-boot-starter-mail'

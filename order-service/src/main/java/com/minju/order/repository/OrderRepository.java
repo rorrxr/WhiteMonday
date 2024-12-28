@@ -1,7 +1,7 @@
-package com.minju.whitemonday.order.repository;
+package com.minju.order.repository;
 
-import com.minju.whitemonday.order.entity.Order;
-import com.minju.whitemonday.user.entity.User;
+import com.minju.order.entity.Order;
+import com.minju.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

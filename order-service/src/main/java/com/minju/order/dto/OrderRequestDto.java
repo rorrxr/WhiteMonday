@@ -1,4 +1,4 @@
-package com.minju.whitemonday.order.dto;
+package com.minju.order.dto;
 
 import lombok.Getter;
 import lombok.Setter;

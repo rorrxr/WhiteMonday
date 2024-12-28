@@ -1,7 +1,7 @@
-package com.minju.whitemonday.order.dto;
+package com.minju.order.dto;
 
-import com.minju.whitemonday.order.entity.Order;
-import com.minju.whitemonday.order.entity.OrderItem;
+import com.minju.order.entity.Order;
+import com.minju.order.entity.OrderItem;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

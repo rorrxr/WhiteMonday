@@ -1,14 +1,14 @@
-package com.minju.whitemonday.order.service;
+package com.minju.order.service;
 
-import com.minju.whitemonday.order.dto.OrderRequestDto;
-import com.minju.whitemonday.order.dto.OrderResponseDto;
-import com.minju.whitemonday.order.entity.Order;
-import com.minju.whitemonday.order.entity.OrderItem;
-import com.minju.whitemonday.order.repository.OrderItemRepository;
-import com.minju.whitemonday.order.repository.OrderRepository;
+import com.minju.order.dto.OrderRequestDto;
+import com.minju.order.dto.OrderResponseDto;
+import com.minju.order.entity.Order;
+import com.minju.order.entity.OrderItem;
+import com.minju.order.repository.OrderItemRepository;
+import com.minju.order.repository.OrderRepository;
 import com.minju.product.entity.Product;
 import com.minju.product.repository.ProductRepository;
-import com.minju.whitemonday.user.entity.User;
+import com.minju.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

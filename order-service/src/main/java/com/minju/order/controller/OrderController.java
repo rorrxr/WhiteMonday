@@ -1,9 +1,9 @@
-package com.minju.whitemonday.order.controller;
+package com.minju.order.controller;
 
-import com.minju.whitemonday.order.dto.OrderRequestDto;
-import com.minju.whitemonday.order.dto.OrderResponseDto;
-import com.minju.whitemonday.user.service.UserDetailsImpl;
-import com.minju.whitemonday.order.service.OrderService;
+import com.minju.order.dto.OrderRequestDto;
+import com.minju.order.dto.OrderResponseDto;
+import com.minju.order.service.OrderService;
+import com.minju.user.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

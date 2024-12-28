@@ -1,4 +1,6 @@
-package com.minju.whitemonday.order.entity;
+package com.minju.order.entity;
+
+import com.minju.user.entity.User;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import jakarta.persistence.*;
@@ -9,25 +11,29 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "payment")
-public class Payment {
+@Table(name = "orders")
+public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long paymentId;
+    private Long orderId;
 
-    @OneToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    private String paymentStatus;
-    private LocalDateTime paymentDate;
-    private String paymentMethod;
+    private String orderStatus;
+    private int totalAmount;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

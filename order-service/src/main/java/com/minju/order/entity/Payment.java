@@ -1,5 +1,4 @@
-package com.minju.whitemonday.order.entity;
-import com.minju.product.entity.Product;
+package com.minju.order.entity;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import jakarta.persistence.*;
@@ -16,22 +15,19 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "orderitem")
-public class OrderItem {
+@Table(name = "payment")
+public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long orderItemId;
+    private Long paymentId;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
-
-    private int quantity;
-    private int price;
+    private String paymentStatus;
+    private LocalDateTime paymentDate;
+    private String paymentMethod;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
