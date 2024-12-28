@@ -1,9 +1,9 @@
 package com.minju.whitemonday.user.controller;
 
-import com.minju.whitemonday.authentication.entity.VerificationToken;
+import com.minju.whitemonday.user.entity.VerificationToken;
 import com.minju.whitemonday.user.repository.UserRepository;
-import com.minju.whitemonday.authentication.repository.VerificationTokenRepository;
-import com.minju.whitemonday.authentication.service.EmailService;
+import com.minju.whitemonday.user.repository.VerificationTokenRepository;
+import com.minju.whitemonday.user.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

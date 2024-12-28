@@ -1,9 +1,9 @@
-package com.minju.whitemonday.authentication.security;
+package com.minju.whitemonday.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minju.whitemonday.user.dto.LoginRequestDto;
-import com.minju.whitemonday.common.dto.UserRoleEnum;
-import com.minju.whitemonday.common.util.JwtUtil;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
+import com.minju.whitemonday.user.util.JwtUtil;
 import com.minju.whitemonday.user.service.UserDetailsImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;

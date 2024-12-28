@@ -1,4 +1,4 @@
-package com.minju.whitemonday.common.util;
+package com.minju.whitemonday.user.util;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;

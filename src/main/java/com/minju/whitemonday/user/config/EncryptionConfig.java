@@ -1,6 +1,6 @@
-package com.minju.whitemonday.common.config;
+package com.minju.whitemonday.user.config;
 
-import com.minju.whitemonday.common.util.EncryptionUtil;
+import com.minju.whitemonday.user.util.EncryptionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

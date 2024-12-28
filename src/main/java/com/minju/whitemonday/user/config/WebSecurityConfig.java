@@ -1,11 +1,11 @@
-package com.minju.whitemonday.authentication.config;
+package com.minju.whitemonday.user.config;
 
-import com.minju.whitemonday.common.util.JwtUtil;
+import com.minju.whitemonday.user.util.JwtUtil;
 import com.minju.whitemonday.user.repository.UserRepository;
-import com.minju.whitemonday.authentication.security.JwtAuthenticationFilter;
-import com.minju.whitemonday.authentication.security.JwtAuthorizationFilter;
+import com.minju.whitemonday.security.JwtAuthenticationFilter;
+import com.minju.whitemonday.security.JwtAuthorizationFilter;
 import com.minju.whitemonday.user.service.UserDetailsServiceImpl;
-import com.minju.whitemonday.authentication.service.LogoutService;
+import com.minju.whitemonday.user.service.LogoutService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

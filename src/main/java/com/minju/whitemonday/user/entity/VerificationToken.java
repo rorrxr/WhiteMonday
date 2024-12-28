@@ -1,4 +1,4 @@
-package com.minju.whitemonday.authentication.entity;
+package com.minju.whitemonday.user.entity;
 
 
 import jakarta.persistence.*;

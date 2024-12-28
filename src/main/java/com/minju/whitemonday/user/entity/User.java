@@ -1,6 +1,6 @@
 package com.minju.whitemonday.user.entity;
 
-import com.minju.whitemonday.common.dto.UserRoleEnum;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

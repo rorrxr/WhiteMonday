@@ -1,6 +1,6 @@
-package com.minju.whitemonday.authentication.repository;
+package com.minju.whitemonday.user.repository;
 
-import com.minju.whitemonday.authentication.entity.VerificationToken;
+import com.minju.whitemonday.user.entity.VerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

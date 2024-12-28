@@ -1,13 +1,12 @@
 package com.minju.whitemonday.user.service;
 
-import com.minju.whitemonday.authentication.service.LogoutService;
 import com.minju.whitemonday.user.dto.SignupRequestDto;
 import com.minju.whitemonday.user.entity.User;
-import com.minju.whitemonday.common.dto.UserRoleEnum;
-import com.minju.whitemonday.common.util.EncryptionUtil;
-import com.minju.whitemonday.common.util.JwtUtil;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
+import com.minju.whitemonday.user.util.EncryptionUtil;
+import com.minju.whitemonday.user.util.JwtUtil;
 import com.minju.whitemonday.user.repository.UserRepository;
-import com.minju.whitemonday.authentication.repository.VerificationTokenRepository;
+import com.minju.whitemonday.user.repository.VerificationTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;

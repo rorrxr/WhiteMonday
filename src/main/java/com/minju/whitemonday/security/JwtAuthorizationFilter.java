@@ -1,8 +1,8 @@
-package com.minju.whitemonday.authentication.security;
+package com.minju.whitemonday.security;
 
-import com.minju.whitemonday.common.util.JwtUtil;
+import com.minju.whitemonday.user.util.JwtUtil;
 import com.minju.whitemonday.user.repository.UserRepository;
-import com.minju.whitemonday.authentication.service.LogoutService;
+import com.minju.whitemonday.user.service.LogoutService;
 import com.minju.whitemonday.user.service.UserDetailsServiceImpl;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

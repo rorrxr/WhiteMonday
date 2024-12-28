@@ -1,4 +1,4 @@
-package com.minju.whitemonday.authentication.service;
+package com.minju.whitemonday.user.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

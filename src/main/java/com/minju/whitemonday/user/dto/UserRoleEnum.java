@@ -1,4 +1,4 @@
-package com.minju.whitemonday.common.dto;
+package com.minju.whitemonday.user.dto;
 
 public enum UserRoleEnum {
     USER(Authority.USER),  // 사용자 권한

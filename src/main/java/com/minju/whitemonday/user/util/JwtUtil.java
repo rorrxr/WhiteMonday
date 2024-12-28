@@ -1,6 +1,6 @@
-package com.minju.whitemonday.common.util;
+package com.minju.whitemonday.user.util;
 
-import com.minju.whitemonday.common.dto.UserRoleEnum;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;

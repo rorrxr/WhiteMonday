@@ -2,7 +2,7 @@ package com.minju.whitemonday.user.service;
 
 
 import com.minju.whitemonday.user.entity.User;
-import com.minju.whitemonday.common.dto.UserRoleEnum;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

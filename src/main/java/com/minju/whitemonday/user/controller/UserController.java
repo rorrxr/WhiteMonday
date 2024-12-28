@@ -2,11 +2,11 @@ package com.minju.whitemonday.user.controller;
 
 import com.minju.whitemonday.user.dto.SignupRequestDto;
 import com.minju.whitemonday.user.dto.UserInfoDto;
-import com.minju.whitemonday.common.dto.UserRoleEnum;
-import com.minju.whitemonday.common.util.JwtUtil;
+import com.minju.whitemonday.user.dto.UserRoleEnum;
+import com.minju.whitemonday.user.util.JwtUtil;
 import com.minju.whitemonday.user.repository.UserRepository;
 import com.minju.whitemonday.user.service.UserDetailsImpl;
-import com.minju.whitemonday.authentication.service.LogoutService;
+import com.minju.whitemonday.user.service.LogoutService;
 import com.minju.whitemonday.user.service.UserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.Valid;
