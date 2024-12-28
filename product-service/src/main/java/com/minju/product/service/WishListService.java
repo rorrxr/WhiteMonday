@@ -7,6 +7,7 @@ import com.minju.product.entity.Product;
 import com.minju.product.entity.WishList;
 import com.minju.product.repository.ProductRepository;
 import com.minju.product.repository.WishListRepository;
+import com.minju.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

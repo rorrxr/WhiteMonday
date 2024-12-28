@@ -1,6 +1,6 @@
 package com.minju.product.entity;
 
-import com.minju.whitemonday.user.entity.User;
+import com.minju.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
