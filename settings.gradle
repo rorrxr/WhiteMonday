@@ -1,1 +1,3 @@
 rootProject.name = 'WhiteMonday'
+
+include "user-service"
