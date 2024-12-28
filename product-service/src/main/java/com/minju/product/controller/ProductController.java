@@ -1,8 +1,8 @@
-package com.minju.whitemonday.product.controller;
+package com.minju.product.controller;
 
-import com.minju.whitemonday.product.dto.ProductRequestDto;
-import com.minju.whitemonday.product.dto.ProductResponseDto;
-import com.minju.whitemonday.product.service.ProductService;
+import com.minju.product.dto.ProductRequestDto;
+import com.minju.product.dto.ProductResponseDto;
+import com.minju.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

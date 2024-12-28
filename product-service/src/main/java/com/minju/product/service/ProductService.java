@@ -1,9 +1,9 @@
-package com.minju.whitemonday.product.service;
+package com.minju.product.service;
 
-import com.minju.whitemonday.product.dto.ProductRequestDto;
-import com.minju.whitemonday.product.dto.ProductResponseDto;
-import com.minju.whitemonday.product.entity.Product;
-import com.minju.whitemonday.product.repository.ProductRepository;
+import com.minju.product.dto.ProductRequestDto;
+import com.minju.product.dto.ProductResponseDto;
+import com.minju.product.entity.Product;
+import com.minju.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

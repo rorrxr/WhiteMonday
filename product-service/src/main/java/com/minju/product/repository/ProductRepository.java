@@ -1,6 +1,6 @@
-package com.minju.whitemonday.product.repository;
+package com.minju.product.repository;
 
-import com.minju.whitemonday.product.entity.Product;
+import com.minju.product.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {

@@ -33,6 +33,7 @@ dependencies {
     implementation 'org.projectlombok:lombok:1.18.28'
 
     implementation project("user-service")
+    implementation project("product-service")
 
     // 이메일 전송
     implementation 'org.springframework.boot:spring-boot-starter-mail'

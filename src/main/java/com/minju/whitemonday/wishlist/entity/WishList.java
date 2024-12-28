@@ -1,6 +1,6 @@
 package com.minju.whitemonday.wishlist.entity;
 
-import com.minju.whitemonday.product.entity.Product;
+import com.minju.product.entity.Product;
 import com.minju.whitemonday.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

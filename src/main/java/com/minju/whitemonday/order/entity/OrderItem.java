@@ -1,5 +1,5 @@
 package com.minju.whitemonday.order.entity;
-import com.minju.whitemonday.product.entity.Product;
+import com.minju.product.entity.Product;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import jakarta.persistence.*;

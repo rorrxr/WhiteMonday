@@ -1,3 +1,4 @@
 rootProject.name = 'WhiteMonday'
 
 include "user-service"
+include "product-service"

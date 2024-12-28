@@ -1,4 +1,4 @@
-package com.minju.whitemonday.product.entity;
+package com.minju.product.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
