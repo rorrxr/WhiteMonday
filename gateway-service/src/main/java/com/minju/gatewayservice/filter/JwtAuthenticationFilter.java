@@ -1,10 +1,11 @@
-package com.minju.whitemonday.security;
+package com.minju.gatewayservice.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.minju.whitemonday.user.dto.LoginRequestDto;
-import com.minju.whitemonday.user.dto.UserRoleEnum;
-import com.minju.whitemonday.user.util.JwtUtil;
-import com.minju.whitemonday.user.service.UserDetailsImpl;
+
+import com.minju.user.dto.LoginRequestDto;
+import com.minju.user.dto.UserRoleEnum;
+import com.minju.user.service.UserDetailsImpl;
+import com.minju.user.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -62,7 +63,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
-        log.error("Authentication failed: {}", failed.getMessage());
+        log.error("Authentication failed", failed.getMessage());
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 }

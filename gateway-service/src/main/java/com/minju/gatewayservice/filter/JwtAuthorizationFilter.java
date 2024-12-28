@@ -1,9 +1,9 @@
-package com.minju.whitemonday.security;
+package com.minju.gatewayservice.filter;
 
-import com.minju.whitemonday.user.util.JwtUtil;
-import com.minju.whitemonday.user.repository.UserRepository;
-import com.minju.whitemonday.user.service.LogoutService;
-import com.minju.whitemonday.user.service.UserDetailsServiceImpl;
+import com.minju.user.repository.UserRepository;
+import com.minju.user.service.LogoutService;
+import com.minju.user.service.UserDetailsServiceImpl;
+import com.minju.user.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
