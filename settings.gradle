@@ -4,3 +4,5 @@ include "common"
 include "user-service"
 include "product-service"
 include "order-service"
+
+include "eureka-server"
