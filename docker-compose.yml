@@ -10,6 +10,11 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "3306:3306"
     volumes:
@@ -33,40 +38,9 @@ services:
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY}
     ports:
       - "8000:8000"
-    networks:
-      - commerce-network
-
-  order-service:
-    image: order-service:latest
-    container_name: order-service
-    depends_on:
-      - mysql
-      - eureka-server
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    ports:
-      - "8081:8081"
-    networks:
-      - commerce-network
-
-  product-service:
-    image: product-service:latest
-    container_name: product-service
-    depends_on:
-      - mysql
-      - eureka-server
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    ports:
-      - "8082:8082"
     networks:
       - commerce-network
 
@@ -82,8 +56,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY}
     ports:
-      - "8080:8080"
+      - "8081:8080"
     networks:
       - commerce-network
 
@@ -93,3 +68,36 @@ volumes:
 networks:
   commerce-network:
     driver: bridge
+
+
+#  order-service:
+#    image: order-service:latest
+#    container_name: order-service
+#    depends_on:
+#      - mysql
+#      - eureka-server
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}
+#      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+#      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - commerce-network
+#
+#  product-service:
+#    image: product-service:latest
+#    container_name: product-service
+#    depends_on:
+#      - mysql
+#      - eureka-server
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}
+#      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+#      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+#    ports:
+#      - "8082:8082"
+#    networks:
+#      - commerce-network
