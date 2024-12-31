@@ -1,42 +1,62 @@
+#server:
+#  port: 8081
+#
+#spring:
+#  application:
+#    name: user-service
+#
+#  datasource:
+#    url: ${SPRING_DATASOURCE_URL}
+#    username: ${SPRING_DATASOURCE_USERNAME}
+#    password: ${SPRING_DATASOURCE_PASSWORD}
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: create
+#    properties:
+#      hibernate:
+#        show_sql: true
+#        format_sql: true
+#eureka:
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://127.0.0.1:8761/eureka}
+#
+#  instance:
+#    lease-renewal-interval-in-seconds: ${EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS:10}
+#    lease-expiration-duration-in-seconds: ${EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS:30}
+#    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+#    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+#    non-secure-port-enabled: true
+#    metadata-map:
+#      instanceId: ${spring.application.name}:${random.value}
+#
+#jwt:
+#  secret:
+#    key: ${JWT_SECRET_KEY}
+#
+
+#
+#  profiles:
+#    active: dev
+#
+#encryption:
+#  secret:
+#    key: ${ENCRYPTION_SECRET_KEY}
 server:
   port: 8081
-
 spring:
   application:
     name: user-service
-
+  profiles:
+    active: default
   datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-
-  jpa:
-    hibernate:
-      ddl-auto: create
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-eureka:
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://127.0.0.1:8761/eureka}
-
-  instance:
-    lease-renewal-interval-in-seconds: ${EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS:10}
-    lease-expiration-duration-in-seconds: ${EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS:30}
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
-    non-secure-port-enabled: true
-    metadata-map:
-      instanceId: ${spring.application.name}:${random.value}
-
-jwt:
-  secret:
-    key: ${JWT_SECRET_KEY}
-
   mail:
     host: smtp.gmail.com
     port: 587
@@ -50,10 +70,29 @@ jwt:
           starttls:
             enable: true
             required: true
-
-  profiles:
-    active: dev
-
-encryption:
-  secret:
-    key: ${ENCRYPTION_SECRET_KEY}
+  jpa:
+    hibernate:
+      ddl-auto: create
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+  main:
+    web-application-type: servlet
+    log-startup-info: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5000
+    disable-delta: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+#logging:
+#  level:
+##    org.springframework.cloud: DEBUG
+jwt:
+  secret: ${JWT_SECRET_KEY}

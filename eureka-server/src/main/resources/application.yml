@@ -1,11 +1,16 @@
 server:
   port: 8761
-
 spring:
   application:
     name: eureka-server
-
+  cloud:
+    compatibility-verifier:
+      enabled: false
 eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
+  server:
+    enable-self-preservation: false
+    response-cache-update-interval-ms: 1000
+    eviction-interval-timer-in-ms: 5000

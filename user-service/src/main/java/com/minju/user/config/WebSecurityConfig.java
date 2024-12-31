@@ -71,7 +71,7 @@ public class WebSecurityConfig {
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
                         .requestMatchers("/api/v1/send-verification-email", "/api/v1/verify-email").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/products/**", "/api/user/test").permitAll()
                         .requestMatchers("/api/wishlist/**").authenticated()
                         .requestMatchers("/api/user/logout").authenticated()
                         .anyRequest().authenticated()

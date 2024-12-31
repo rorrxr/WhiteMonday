@@ -1,9 +1,18 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url "https://repo.spring.io/release" } // Spring Cloud 릴리즈 저장소
+        maven { url "https://repo.spring.io/milestone" } // Spring Cloud 마일스톤 저장소
+        maven { url "https://repo.spring.io/snapshot" } // Spring Cloud 스냅샷 저장소 (필요시)
+    }
+    plugins {
+        id 'org.springframework.boot' version '3.4.0'
+        id 'io.spring.dependency-management' version '1.1.6'
+    }
+}
+
 rootProject.name = 'WhiteMonday'
 
-include "common"
-include "user-service"
-//include "product-service"
-//include "order-service"
-
-include "eureka-server"
-include "gateway-service"
+// 최상위 디렉토리 모듈
+include 'eureka-server', 'gateway-service', 'user-service'

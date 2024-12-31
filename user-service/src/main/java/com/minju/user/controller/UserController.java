@@ -33,6 +33,10 @@ public class UserController {
     private final UserRepository userRepository;
     private final LogoutService logoutService;
     private final JwtUtil jwtUtil;
+    @GetMapping("/test")
+    public String test() {
+        return "테스트 성공!!!";
+    }
 
     // 1. 회원가입
     @PostMapping("/signup")

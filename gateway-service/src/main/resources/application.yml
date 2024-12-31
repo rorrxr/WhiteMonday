@@ -5,8 +5,9 @@ eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
+    registry-fetch-interval-seconds: 5
     service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://eureka-server:8761/eureka/}
+      defaultZone: http://localhost:8761/eureka
 
 spring:
   application:
@@ -16,33 +17,39 @@ spring:
     gateway:
       routes:
         - id: user-service
-          uri: lb://user-service
+          uri: lb://USER-SERVICE
           predicates:
-            - Path=/user-service/**
-          filters:
-            - StripPrefix=1
-            - name: JwtFilter
+            - Path=/api/user/**
+#          filters:
+#            - StripPrefix=1
+#            - name: JwtFilter
         - id: product-service
           uri: lb://product-service
           predicates:
             - Path=/product-service/**
-          filters:
-            - StripPrefix=1
-            - name: JwtFilter
+#          filters:
+#            - StripPrefix=1
+#            - name: JwtFilter
         - id: order-service
           uri: lb://order-service
           predicates:
             - Path=/order-service/**
-          filters:
-            - StripPrefix=1
-            - name: JwtFilter
-      default-filters:
-        - name: GlobalFilter
-          args:
-            baseMessage: "Spring Cloud Gateway Global Filter"
-            preLogger: true
-            postLogger: true
+#          filters:
+#            - StripPrefix=1
+#            - name: JwtFilter
+#      default-filters:
+#        - name: GlobalFilter
+#          args:
+#            baseMessage: "Spring Cloud Gateway Global Filter"
+#            preLogger: true
+#            postLogger: true
+    compatibility-verifier:
+      enabled: false
 
 jwt:
   secret:
     key: ${JWT_SECRET_KEY}
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.netflix.eureka: DEBUG
