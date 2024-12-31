@@ -28,6 +28,9 @@ public class JwtUtil {
     // 토큰 만료시간
     private final long TOKEN_TIME = 60 * 60 * 1000L; // 60분
 
+    // 리프레시 토큰 만료시간 (7일)
+    private final long REFRESH_TOKEN_TIME = 7 * 24 * 60 * 60 * 1000L;
+
     @Value("${jwt.secret}") // Base64 Encode 한 SecretKey
     private String secretKey;
     private Key key;
@@ -89,4 +92,25 @@ public class JwtUtil {
     public Claims getUserInfoFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
+
+    public String createRefreshToken(String username) {
+        Date now = new Date();
+        return Jwts.builder()
+                .setSubject(username)
+                .setExpiration(new Date(now.getTime() + REFRESH_TOKEN_TIME)) // 리프레시 토큰 시간 설정
+                .setIssuedAt(now)
+                .signWith(key, signatureAlgorithm)
+                .compact();
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (JwtException e) {
+            log.error("Invalid refresh token: {}", e.getMessage());
+            return false;
+        }
+    }
+
 }

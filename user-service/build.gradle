@@ -34,6 +34,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'                      //
 	// DB
 	implementation 'mysql:mysql-connector-java:8.0.33'                                         //
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'                //
 	// JWT, Lombok
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'                                        //
@@ -48,7 +50,6 @@ dependencies {
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'                  //
 	testImplementation 'org.springframework.security:spring-security-test'                  //
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'                  //
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 dependencyManagement {

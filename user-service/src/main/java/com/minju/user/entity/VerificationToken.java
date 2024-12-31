@@ -9,10 +9,10 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
-@Entity
 public class VerificationToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,5 +33,13 @@ public class VerificationToken {
         this.token = UUID.randomUUID().toString();
         this.createdAt = LocalDateTime.now();
         this.expiresAt = this.createdAt.plusHours(1); // 토큰 유효시간 1시간
+    }
+
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(this.expiresAt);
+    }
+
+    public void markAsVerified() {
+        this.isVerified = true;
     }
 }
