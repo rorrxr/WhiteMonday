@@ -1,4 +1,4 @@
-package com.minju.gatewayservice.filter;
+package com.minju.gateway.filter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -8,18 +8,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Date;
 
 @Slf4j
 @Component
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
+
+    @Value("${jwt.secret}")
+    private String secret;
 
     private final Key key;
 
@@ -34,9 +38,9 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
-            String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+            String authHeader = request.getHeaders().getFirst("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return handleUnauthorized(response, "Missing or invalid Authorization header.");
+                return handleUnauthorized(response, "Missing or invalid Authorization header");
             }
 
             String token = authHeader.substring(7);
@@ -47,31 +51,40 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                         .parseClaimsJws(token)
                         .getBody();
 
-                log.info("JWT Claims: {}", claims);
+                // Role 확인
+                String userRole = claims.get("role", String.class);
+                if (!hasRequiredRole(config.requiredRole, userRole)) {
+                    return handleUnauthorized(response, "Access denied: insufficient permissions");
+                }
 
-                // Claims를 헤더에 추가
+                // 유저 정보를 헤더에 추가
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .header("X-User-Id", claims.getSubject())
-                        .header("X-User-Role", (String) claims.get("role"))
+                        .header("X-User-Role", userRole)
                         .build();
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } catch (Exception e) {
-                log.error("JWT validation failed: {}", e.getMessage());
-                return handleUnauthorized(response, "Invalid or expired token.");
+                log.error("JWT validation error: {}", e.getMessage());
+                return handleUnauthorized(response, "Invalid or expired token");
             }
         };
     }
 
+    private boolean hasRequiredRole(String requiredRole, String userRole) {
+        if (requiredRole.equals("USER") && userRole.equals("ADMIN")) {
+            return true; // ADMIN은 USER 권한 포함
+        }
+        return requiredRole.equals(userRole);
+    }
+
     private Mono<Void> handleUnauthorized(ServerHttpResponse response, String message) {
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
-        response.getHeaders().add("Content-Type", "application/json");
-        String body = String.format("{\"error\": \"%s\"}", message);
-        return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
+        return response.setComplete();
     }
 
     @Data
     public static class Config {
-        // 추가 설정 (필요 시)
+        private String requiredRole; // 엔드포인트에 필요한 Role 설정
     }
 }

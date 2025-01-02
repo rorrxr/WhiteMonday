@@ -37,35 +37,47 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
         String token = jwtUtil.getJwtFromHeader(req);
 
-        if (token == null) {
-            log.warn("No Authorization header found in the request");
-        } else {
-            log.info("Authorization token: {}", token);
+        if (token == null || logoutService.isTokenBlacklisted(token) || !jwtUtil.validateToken(token)) {
+            log.warn("Invalid, missing, or blacklisted JWT token");
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.getWriter().write("Unauthorized");
+            return;
         }
 
-        if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
-            Claims claims = jwtUtil.getUserInfoFromToken(token);
-            String username = claims.getSubject();
+        Claims claims = jwtUtil.getUserInfoFromToken(token);
+        String username = claims.getSubject();
+        String role = claims.get("role", String.class);
 
-            if (username != null) {
-                setAuthentication(username);
-            }
+        if (username != null) {
+            setAuthentication(username, role);
         }
 
         filterChain.doFilter(req, res);
     }
 
-    private void setAuthentication(String username) {
+
+    private void setAuthentication(String username, String role) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities()
         );
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 로그 추가
-        log.info("SecurityContext set with user: {}", username);
-        log.info("Authentication in SecurityContext: {}", SecurityContextHolder.getContext().getAuthentication());
+        log.info("Authentication set for user: {}, role: {}", username, role);
     }
+
+//    private void setAuthentication(String username) {
+//        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+//        Authentication authentication = new UsernamePasswordAuthenticationToken(
+//                userDetails, null, userDetails.getAuthorities()
+//        );
+//        SecurityContextHolder.getContext().setAuthentication(authentication);
+//
+//        // 로그 추가
+//        log.info("SecurityContext set with user: {}", username);
+//        log.info("Authentication in SecurityContext: {}", SecurityContextHolder.getContext().getAuthentication());
+//    }
 
 
 
