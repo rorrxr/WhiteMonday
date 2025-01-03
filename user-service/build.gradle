@@ -36,7 +36,7 @@ dependencies {
 	implementation 'mysql:mysql-connector-java:8.0.33'                                         //
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'                //
+//	implementation 'org.springframework.boot:spring-boot-starter-data-redis'                //
 	// JWT, Lombok
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'                                        //
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'                                          //

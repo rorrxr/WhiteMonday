@@ -7,7 +7,7 @@ eureka:
     fetch-registry: true
     registry-fetch-interval-seconds: 5
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://127.0.0.1:8761/eureka
 
 spring:
   application:
@@ -20,29 +20,35 @@ spring:
           uri: lb://USER-SERVICE
           predicates:
             - Path=/api/user/**
-#          filters:
-#            - StripPrefix=1
-#            - name: JwtFilter
+          filters:
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+            - name: JwtFilter
+              args:
+                requiredRole: USER
         - id: product-service
           uri: lb://product-service
           predicates:
             - Path=/product-service/**
-#          filters:
-#            - StripPrefix=1
-#            - name: JwtFilter
+          filters:
+            - StripPrefix=1
+            - name: JwtFilter
+              args:
+                requiredRole: USER
         - id: order-service
           uri: lb://order-service
           predicates:
             - Path=/order-service/**
-#          filters:
-#            - StripPrefix=1
-#            - name: JwtFilter
-#      default-filters:
-#        - name: GlobalFilter
-#          args:
-#            baseMessage: "Spring Cloud Gateway Global Filter"
-#            preLogger: true
-#            postLogger: true
+          filters:
+            - StripPrefix=1
+            - name: JwtFilter
+              args:
+                requiredRole: USER
+      default-filters:
+        - name: GlobalFilter
+          args:
+            baseMessage: "Spring Cloud Gateway Global Filter"
+            preLogger: true
+            postLogger: true
     compatibility-verifier:
       enabled: false
 
@@ -51,5 +57,6 @@ jwt:
     key: ${JWT_SECRET_KEY}
 logging:
   level:
+    # 프로덕션 환경에서는 로깅 수준을 INFO로 조정.
     org.springframework.cloud.gateway: DEBUG
     org.springframework.cloud.netflix.eureka: DEBUG
