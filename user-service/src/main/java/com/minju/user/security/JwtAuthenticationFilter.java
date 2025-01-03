@@ -1,10 +1,12 @@
 package com.minju.user.security;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minju.user.dto.LoginRequestDto;
 import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.service.UserDetailsImpl;
 import com.minju.user.util.JwtUtil;
+import com.sun.jdi.request.InvalidRequestStateException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +42,9 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                             null
                     )
             );
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing the login request body: {}", e.getMessage());
+            throw new InvalidRequestStateException("Invalid request format");
         } catch (IOException e) {
             log.error("Error reading login request: {}", e.getMessage());
             throw new RuntimeException(e.getMessage());
