@@ -57,7 +57,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
     @Override
     public GatewayFilter apply(Config config) {
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
-
+        log.debug("secret key {}", secretKey);
         return (((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();

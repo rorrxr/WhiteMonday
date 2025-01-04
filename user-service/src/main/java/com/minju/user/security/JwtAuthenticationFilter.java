@@ -42,9 +42,6 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                             null
                     )
             );
-        } catch (JsonProcessingException e) {
-            log.error("Error parsing the login request body: {}", e.getMessage());
-            throw new InvalidRequestStateException("Invalid request format");
         } catch (IOException e) {
             log.error("Error reading login request: {}", e.getMessage());
             throw new RuntimeException(e.getMessage());
@@ -61,6 +58,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
         String token = jwtUtil.createToken(username, role);
         log.info("Generated JWT: {}", token);
+        log.info("Adding token to response header: {}", token);
 
         response.addHeader(JwtUtil.AUTHORIZATION_HEADER, token);
     }
