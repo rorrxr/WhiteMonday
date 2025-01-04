@@ -15,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api/user")
 public class EmailController {
 
     private final VerificationTokenRepository tokenRepository;
