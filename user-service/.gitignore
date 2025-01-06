@@ -38,4 +38,4 @@ out/
 
 .env
 
-/application.yml
+*.yml
