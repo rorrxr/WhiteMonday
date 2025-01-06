@@ -1,10 +1,10 @@
-package com.minju.product.controller;
+package com.minju.wishlist.controller;
 
-import com.minju.product.dto.WishListCreateRequestDto;
-import com.minju.product.dto.WishListResponseDto;
-import com.minju.product.dto.WishListUpdateRequestDto;
-import com.minju.product.service.WishListService;
-import com.minju.user.service.UserDetailsImpl;
+
+import com.minju.wishlist.dto.WishListCreateRequestDto;
+import com.minju.wishlist.dto.WishListResponseDto;
+import com.minju.wishlist.dto.WishListUpdateRequestDto;
+import com.minju.wishlist.service.WishListService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package com.minju.product.entity;
+package com.minju.wishlist.entity;
 
 import com.minju.user.entity.User;
 import jakarta.persistence.*;

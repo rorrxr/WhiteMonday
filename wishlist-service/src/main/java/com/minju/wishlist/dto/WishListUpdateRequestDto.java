@@ -1,4 +1,4 @@
-package com.minju.product.dto;
+package com.minju.wishlist.dto;
 
 import lombok.Data;
 

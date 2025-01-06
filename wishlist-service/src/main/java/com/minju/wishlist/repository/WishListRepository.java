@@ -1,8 +1,6 @@
-package com.minju.product.repository;
+package com.minju.wishlist.repository;
 
-import com.minju.product.entity.Product;
-import com.minju.product.entity.WishList;
-import com.minju.user.entity.User;
+import com.minju.wishlist.entity.WishList;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

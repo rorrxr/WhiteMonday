@@ -1,13 +1,10 @@
-package com.minju.product.service;
+package com.minju.wishlist.service;
 
-import com.minju.product.dto.WishListCreateRequestDto;
-import com.minju.product.dto.WishListResponseDto;
-import com.minju.product.dto.WishListUpdateRequestDto;
-import com.minju.product.entity.Product;
-import com.minju.product.entity.WishList;
-import com.minju.product.repository.ProductRepository;
-import com.minju.product.repository.WishListRepository;
-import com.minju.user.entity.User;
+import com.minju.wishlist.dto.WishListCreateRequestDto;
+import com.minju.wishlist.dto.WishListResponseDto;
+import com.minju.wishlist.dto.WishListUpdateRequestDto;
+import com.minju.wishlist.entity.WishList;
+import com.minju.wishlist.repository.WishListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
