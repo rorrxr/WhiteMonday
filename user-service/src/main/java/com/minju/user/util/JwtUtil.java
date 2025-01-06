@@ -39,7 +39,19 @@ public class JwtUtil {
         key = Keys.hmacShaKeyFor(bytes);
     }
 
-    // 토큰 생성
+//    // 토큰 생성
+//    public String createToken(String username, UserRoleEnum role) {
+//        Date date = new Date();
+//        log.info("Starting JWT token generation for user: {}", username);
+//        return BEARER_PREFIX +
+//                Jwts.builder()
+//                        .setSubject(username) // 사용자 식별자값(ID)
+//                        .claim(AUTHORIZATION_KEY, role) // 사용자 권한
+//                        .setExpiration(new Date(date.getTime() + TOKEN_TIME)) // 만료 시간
+//                        .setIssuedAt(date) // 발급일
+//                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
+//                        .compact();
+//    }
     public String createToken(String username, UserRoleEnum role) {
         Date date = new Date();
         log.info("Starting JWT token generation for user: {}", username);
@@ -47,9 +59,10 @@ public class JwtUtil {
                 Jwts.builder()
                         .setSubject(username) // 사용자 식별자값(ID)
                         .claim(AUTHORIZATION_KEY, role) // 사용자 권한
+                        .claim("userId", username) // 사용자 ID 추가
                         .setExpiration(new Date(date.getTime() + TOKEN_TIME)) // 만료 시간
                         .setIssuedAt(date) // 발급일
-                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
+                        .signWith(key, SignatureAlgorithm.HS256) // 서명 알고리즘
                         .compact();
     }
 
