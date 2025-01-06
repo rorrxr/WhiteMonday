@@ -33,7 +33,7 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'   // 서비스 등록 및 발견
 	implementation 'org.springframework.boot:spring-boot-starter-mail'                      //
 	// DB
-	implementation 'mysql:mysql-connector-java:8.0.33'                                         //
+	implementation 'mysql:mysql-connector-java:8.0.33'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
 //	implementation 'org.springframework.boot:spring-boot-starter-data-redis'                //
