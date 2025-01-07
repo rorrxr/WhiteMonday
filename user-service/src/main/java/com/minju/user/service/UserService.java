@@ -1,6 +1,7 @@
 package com.minju.user.service;
 
 import com.minju.user.dto.SignupRequestDto;
+import com.minju.user.dto.UserInfoDto;
 import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
@@ -9,9 +10,12 @@ import com.minju.user.util.EncryptionUtil;
 import com.minju.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.Optional;
 
@@ -22,8 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EncryptionUtil encryptionUtil;
-    private final VerificationTokenRepository verificationTokenRepository;
-    private final JavaMailSender mailSender;
+
     private final JwtUtil jwtUtil;
     private final LogoutService logoutService;
 
@@ -100,4 +103,15 @@ public class UserService {
         logoutService.invalidateToken(token);
         log.info("Token invalidated successfully.");
     }
+
+    @GetMapping("/api/user/{userId}")
+    public ResponseEntity<UserInfoDto> getUserInfo(@PathVariable Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        UserInfoDto userInfoDto = new UserInfoDto(user.getUsername(), user.getRole() == UserRoleEnum.ADMIN);
+        return ResponseEntity.ok(userInfoDto);
+    }
+
+
 }

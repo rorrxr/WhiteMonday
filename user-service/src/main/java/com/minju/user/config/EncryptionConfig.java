@@ -14,7 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @RequiredArgsConstructor
 public class EncryptionConfig {
 
-    @Value("U29tZVNlY3JldEtleVdpdGhFbWFpbEFuZEFkZHJlc3M=")
+    @Value(value = "ENCRYPTION_SECRET_KEY")
     private String secretKey;
 
     @Bean
