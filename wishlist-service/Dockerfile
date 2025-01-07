@@ -12,6 +12,6 @@ WORKDIR /app
 
 COPY --from=builder /app/wishlist-service/build/libs/*.jar app.jar
 
-COPY --from=builder /app/wishlist-service/build/resources/main/application.yml /app/application.yml
+COPY --from=builder /app/wishlist-service/src/main/resources/application.yml /app/application.yml
 
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=file:/app/application.yml"]
