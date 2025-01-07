@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -94,6 +92,8 @@ services:
   #    networks:
   #      - commerce-network
   wishlist-service:
+    build:
+      context: ./wishlist-service  # Dockerfile이 있는 디렉토리로 경로 설정
     image: wishlist-service:latest
     container_name: wishlist-service
     depends_on:

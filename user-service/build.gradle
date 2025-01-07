@@ -46,6 +46,12 @@ dependencies {
 
 	implementation 'io.github.cdimascio:java-dotenv:5.2.2'
 
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+//	implementation project(':wishlist-service')
+//	implementation project(':product-service')
+//	implementation project(':order-service')
+
 
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'                  //
