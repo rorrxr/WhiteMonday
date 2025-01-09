@@ -1,6 +1,6 @@
 package com.minju.product.controller;
 
-import com.minju.product.dto.ProductDto;
+import com.minju.common.dto.ProductDto;
 import com.minju.product.dto.ProductRequestDto;
 import com.minju.product.dto.ProductResponseDto;
 import com.minju.product.entity.Product;

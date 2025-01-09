@@ -1,7 +1,6 @@
 package com.minju.wishlist.controller;
 
-import com.minju.user.dto.UserInfoDto;
-import com.minju.user.service.UserDetailsImpl;
+import com.minju.common.dto.UserInfoDto;
 import com.minju.wishlist.client.UserServiceClient;
 import com.minju.wishlist.dto.WishListCreateRequestDto;
 import com.minju.wishlist.dto.WishListResponseDto;
@@ -21,9 +20,9 @@ import java.util.List;
 public class WishListController {
 
     private final WishListService wishListService;
-    private final UserServiceClient userServiceClient;
+    UserServiceClient userServiceClient;
 
-    // 위시리스트 추가
+//     위시리스트 추가
     @PostMapping
     public ResponseEntity<WishListResponseDto> addToWishList(
             @Valid @RequestBody WishListCreateRequestDto requestDto,

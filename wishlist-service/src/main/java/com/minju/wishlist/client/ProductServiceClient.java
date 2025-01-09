@@ -1,6 +1,7 @@
 package com.minju.wishlist.client;
 
-import com.minju.product.dto.ProductDto;
+import com.minju.common.dto.ProductDto;
+import com.minju.wishlist.config.FeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

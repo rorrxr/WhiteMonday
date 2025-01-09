@@ -12,13 +12,16 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@Getter
 public class UserDetailsImpl implements UserDetails {
 
     private final User user;
 
     public UserDetailsImpl(User user) {
         this.user = user;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     @Override

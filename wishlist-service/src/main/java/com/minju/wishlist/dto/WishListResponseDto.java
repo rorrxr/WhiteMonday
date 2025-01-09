@@ -1,6 +1,6 @@
 package com.minju.wishlist.dto;
 
-import com.minju.product.dto.ProductDto;
+import com.minju.common.dto.ProductDto;
 import com.minju.wishlist.entity.WishList;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

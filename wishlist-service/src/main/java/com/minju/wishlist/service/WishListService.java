@@ -1,13 +1,13 @@
 package com.minju.wishlist.service;
 
-import com.minju.product.dto.ProductDto;
+import com.minju.common.dto.ProductDto;
 
+import com.minju.wishlist.client.ProductServiceClient;
 import com.minju.wishlist.dto.WishListCreateRequestDto;
 import com.minju.wishlist.dto.WishListResponseDto;
 import com.minju.wishlist.dto.WishListUpdateRequestDto;
 import com.minju.wishlist.entity.WishList;
 import com.minju.wishlist.repository.WishListRepository;
-import com.minju.wishlist.client.ProductServiceClient;  // Feign Client 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class WishListService {
 
     private final WishListRepository wishListRepository;
-    private final ProductServiceClient productServiceClient;  // Feign Client 주입
+    ProductServiceClient productServiceClient;  // Feign Client 주입
 
     // 위시리스트 조회
     @Transactional(readOnly = true)
@@ -37,7 +37,7 @@ public class WishListService {
                 .collect(Collectors.toList());
     }
 
-    // 위시리스트에 상품 추가
+//     위시리스트에 상품 추가
     @Transactional
     public WishListResponseDto addToWishList(WishListCreateRequestDto requestDto, Long userId) {
         // 상품 존재 여부를 ProductService에서 확인
@@ -54,7 +54,7 @@ public class WishListService {
         return new WishListResponseDto(savedWishList, product);  // 상품 정보를 전달하여 DTO 생성
     }
 
-    // 위시리스트 항목 수정
+//     위시리스트 항목 수정
     @Transactional
     public WishListResponseDto updateWishList(Long id, WishListUpdateRequestDto requestDto, Long userId) {
         WishList wishList = wishListRepository.findByIdAndUserId(id, userId)

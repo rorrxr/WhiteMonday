@@ -23,14 +23,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final EncryptionUtil encryptionUtil;
-
-    private final JwtUtil jwtUtil;
-    private final LogoutService logoutService;
-
-    private final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
-
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -47,17 +39,4 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return new UserDetailsImpl(user);
     }
-
-//    @Override
-//    public UserInfoDtoResponse getUserInfo(Long userId) throws Exception {
-//        UserInfoDto userEntity = getUserInfo(userId);
-//
-////        List<OrderProductResponse> order = orderServiceClient.getOrders(userId);
-////        List<OrderProductResponse> orderList = (order != null) ? orders : Collection.emptyList();
-//
-//
-//        return UserInfoDtoResponse.fromEntity(UserInfoDto.decryptSensitiveData(UserInfoDto), orderList);
-//    }
-
-
 }

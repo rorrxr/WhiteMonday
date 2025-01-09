@@ -1,9 +1,7 @@
 package com.minju.gatewayservice.filter;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,24 +20,20 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Date;
-
-import io.jsonwebtoken.SignatureAlgorithm;
 
 @Component
 @Slf4j
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private String secret;  // JwtUtil에서 사용하는 secretKey와 동일해야 함
 
     @Autowired
     private ObjectMapper objectMapper;
 
     private SecretKey secretKey;
 
-    // 생성자
     public JwtFilter(ObjectMapper objectMapper) {
         super(Config.class);
         this.objectMapper = objectMapper;
@@ -54,20 +48,12 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
-            // 인증을 건너뛰고 싶은 경로 체크 (여기서는 /api/products 경로를 제외)
-            if (request.getURI().getPath().startsWith("/api/products") && request.getMethod().equals("POST")) {
-                log.debug("Skipping JWT authentication for product registration.");
-                return chain.filter(exchange);  // 상품 등록 POST 요청은 인증을 건너뛴다.
-            }
-
-            // Authorization 헤더 확인
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 log.debug("No Authorization header found, passing request to next filter.");
                 return chain.filter(exchange);  // Authorization 헤더가 없으면 바로 필터 체인 통과
             }
 
             String accessToken = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-
             if (!accessToken.startsWith("Bearer ")) {
                 log.error("Invalid token format: {}", accessToken);
                 return setResponse(response, "Invalid token format.");
@@ -75,23 +61,28 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
             accessToken = accessToken.substring(7); // Remove "Bearer " prefix
 
-            // 토큰 만료 체크
+            // 토큰 검증
             try {
                 isExpired(accessToken);
             } catch (ExpiredJwtException e) {
                 log.error("Expired token: {}", accessToken);
                 return setResponse(response, "Expired token.");
+            } catch (MalformedJwtException | SignatureException e) {
+                log.error("Invalid token: {}", accessToken);
+                return setResponse(response, "Invalid token.");
             }
 
-            // 역할(role) 확인
+            // 역할 확인
             String role = getRole(accessToken);
+            log.debug("Parsed role: {}", role);
+
             if (!hasRequiredRole(config.requiredRole, role)) {
                 log.error("Insufficient role: required {}, but got {}", config.requiredRole, role);
                 return setResponse(response, "Insufficient role.");
             }
 
             String userId = String.valueOf(getUserId(accessToken));
-            log.debug("User ID: {}", userId);
+            log.debug("Parsed userId: {}", userId);
 
             // Add headers for userId and role
             ServerHttpRequest modifiedRequest = request.mutate()
@@ -102,7 +93,6 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
         };
     }
-
 
     private Mono<Void> setResponse(ServerHttpResponse response, String data) {
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
@@ -119,12 +109,8 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
         }
     }
 
-    // 역할 계층을 고려한 권한 확인
     private boolean hasRequiredRole(String requiredRole, String userRole) {
-        if ("USER".equals(requiredRole) && "ADMIN".equals(userRole)) {
-            return true; // ADMIN은 USER 권한을 포함하므로 접근 허용
-        }
-        return requiredRole.equals(userRole);
+        return requiredRole.equals(userRole) || ("USER".equals(requiredRole) && "ADMIN".equals(userRole));
     }
 
     private Long getUserId(String token) {
@@ -155,30 +141,17 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 .before(new Date());
     }
 
-    private String getCategory(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("category", String.class);
-    }
-
     @Data
     @NoArgsConstructor
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Config {
         private String requiredRole;
     }
 
     @Data
     @NoArgsConstructor
-    @JsonInclude(JsonInclude.Include.NON_NULL) // Null 값을 가진 필드는 직렬화에서 제외
     private static class ResponseDto<T> {
-
         private String message;
         private T data;
-
         public ResponseDto(String message) {
             this.message = message;
         }
