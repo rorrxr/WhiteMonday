@@ -1,13 +1,22 @@
 package com.minju.user.service;
 
+import com.minju.user.dto.SignupRequestDto;
+import com.minju.user.dto.UserInfoDto;
+import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
+import com.minju.user.util.EncryptionUtil;
+import com.minju.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.Optional;
 
 @Slf4j
 @Service

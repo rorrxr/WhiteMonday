@@ -1,16 +1,16 @@
-package com.minju.user;
+package com.minju.wishlist;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
+
 
 @SpringBootApplication
 @EnableDiscoveryClient
-public class UserApplication {
+public class WishlistApplication {
 
 	public static void main(String[] args) {
 
-		SpringApplication.run(UserApplication.class, args);	}
+		SpringApplication.run(WishlistApplication.class, args);	}
 
 }

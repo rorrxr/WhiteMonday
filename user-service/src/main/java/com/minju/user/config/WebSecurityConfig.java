@@ -1,10 +1,8 @@
 package com.minju.user.config;
 
 
-import com.minju.user.repository.UserRepository;
 import com.minju.user.security.JwtAuthenticationFilter;
 import com.minju.user.security.JwtAuthorizationFilter;
-import com.minju.user.service.LogoutService;
 import com.minju.user.service.UserDetailsServiceImpl;
 import com.minju.user.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+
 @Slf4j
 @Configuration
 @EnableWebSecurity // Spring Security 지원을 가능하게 함
@@ -32,7 +31,7 @@ public class WebSecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
-//    private final LogoutService logoutService;
+    //    private final LogoutService logoutService;
 //    private final UserRepository userRepository;
     private final AuthenticationConfiguration authenticationConfiguration;
 
@@ -72,14 +71,14 @@ public class WebSecurityConfig {
         );
 
         http.authorizeHttpRequests(authorizeHttpRequests ->
-                authorizeHttpRequests
-                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
-                        .requestMatchers("/api/user/send-verification-email", "/api/user/verify-email").permitAll()
-//                        .requestMatchers("/api/products/**").permitAll()
-//                        .requestMatchers("/api/wishlist/**").authenticated()
-                        .requestMatchers("/api/user/logout").authenticated()
-                        .anyRequest().authenticated()
+                        authorizeHttpRequests
+                                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+                                .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
+                                .requestMatchers("/api/user/send-verification-email", "/api/user/verify-email").permitAll()
+                                .requestMatchers("/api/products/**").permitAll()
+                                .requestMatchers("/api/wishlist/**").authenticated()
+                                .requestMatchers("/api/user/logout").authenticated()
+                                .anyRequest().authenticated()
         );
 
         http.formLogin(AbstractHttpConfigurer::disable);
