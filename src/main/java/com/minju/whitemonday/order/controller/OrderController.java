@@ -2,6 +2,8 @@ package com.minju.whitemonday.order.controller;
 
 import com.minju.whitemonday.order.dto.OrderRequestDto;
 import com.minju.whitemonday.order.dto.OrderResponseDto;
+import com.minju.whitemonday.order.entity.Order;
+import com.minju.whitemonday.order.repository.OrderRepository;
 import com.minju.whitemonday.user.service.UserDetailsImpl;
 import com.minju.whitemonday.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.List;
 @RequestMapping("/api/orders")
 public class OrderController {
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
 
     // 주문 생성
     @PostMapping
@@ -53,7 +56,7 @@ public class OrderController {
     }
 
     // 반품 처리
-    @PutMapping("/{orderId}/return")
+    @PutMapping("/return/{orderId}")
     public ResponseEntity<Void> returnOrder(
             @PathVariable Long orderId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
@@ -71,4 +74,40 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
+    @PostMapping("/payment/{orderId}")
+    public ResponseEntity<Void> initiatePayment(@PathVariable Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+
+        // 결제 프로세스 시작 (예: PG사 결제 요청)
+        // 결제 시도 시 처리 로직 작성 필요
+
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    // 결제 API
+    @PostMapping("/payment/complete/{orderId}/")
+    public ResponseEntity<OrderResponseDto> completePayment(@PathVariable Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+
+        // 결제 진행 (결제 성공/실패 처리)
+        // 고객의 귀책 이탈 시뮬레이션: 결제 중 20% 확률로 실패 처리
+        if (Math.random() < 0.2) {  // 결제 실패 확률 20%
+            order.setOrderStatus("PAYMENT_FAILED");
+        } else {
+            order.setOrderStatus("PAYMENT_COMPLETED");
+        }
+
+        orderRepository.save(order);
+        return ResponseEntity.ok(new OrderResponseDto(order));
+    }
+    // 주문 정보 조회 API
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponseDto> getOrderById(@PathVariable Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+
+        return ResponseEntity.ok(new OrderResponseDto(order));
+    }
 }
