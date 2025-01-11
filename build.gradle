@@ -44,7 +44,8 @@ dependencies {
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'org.projectlombok:lombok:1.18.28'
 
-    implementation project("common")
+//    implementation project("common")
+    runtimeOnly 'com.mysql:mysql-connector-j:9.1.0'
 
     // 이메일 전송
     implementation 'org.springframework.boot:spring-boot-starter-mail'
