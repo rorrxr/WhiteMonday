@@ -58,8 +58,10 @@ public class ProductControllerTest {
                 1L, "Test Product", "Test Description", 100, 50, false, null, null, null
         );
 
+        // 상품 목록 반환 mock
         given(productService.getAllProducts()).willReturn(List.of(responseDto));
 
+        // GET 요청 테스트
         mockMvc.perform(get("/api/products")
                         .header("Authorization", generateJwtToken()))  // JWT 토큰 추가
                 .andExpect(status().isOk())
@@ -69,17 +71,21 @@ public class ProductControllerTest {
 
     @Test
     public void testCreateProduct() throws Exception {
-        // Test data for product creation
+        // 상품 생성 요청에 대한 데이터 준비
         ProductRequestDto requestDto = new ProductRequestDto("New Product", "New Product Description", 150, 100, false, null);
+
+        // 서비스 레이어에서 반환할 응답 DTO 생성
         ProductResponseDto responseDto = new ProductResponseDto(1L, "New Product", "New Product Description", 150, 100, false, null, null, null);
 
+        // 상품 생성 시 호출되는 서비스 메서드 Mocking
         given(productService.addProduct(requestDto)).willReturn(responseDto);
 
+        // POST 요청을 통해 상품 생성 테스트
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"New Product\",\"description\":\"New Product Description\",\"price\":150,\"stock\":100,\"flashSale\":false}")
                         .header("Authorization", generateJwtToken()))  // JWT 토큰 추가
-                .andExpect(status().isCreated())
+                .andExpect(status().isCreated())  // 상태 코드 201 생성 완료
                 .andExpect(jsonPath("$.title").value("New Product"))
                 .andExpect(jsonPath("$.price").value(150));
     }

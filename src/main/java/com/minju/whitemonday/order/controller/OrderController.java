@@ -91,8 +91,13 @@ public class OrderController {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
 
-        // 결제 진행 (결제 성공/실패 처리)
-        // 고객의 귀책 이탈 시뮬레이션: 결제 중 20% 확률로 실패 처리
+        // 이미 결제가 완료된 주문에 대해서는 다시 결제 처리하지 않도록 방지
+        if ("PAYMENT_COMPLETED".equals(order.getOrderStatus())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new OrderResponseDto(order)); // 이미 결제 완료된 상태일 경우
+        }
+
+        // 결제 진행 (20% 확률로 결제 실패 처리)
         if (Math.random() < 0.2) {  // 결제 실패 확률 20%
             order.setOrderStatus("PAYMENT_FAILED");
         } else {
@@ -102,6 +107,7 @@ public class OrderController {
         orderRepository.save(order);
         return ResponseEntity.ok(new OrderResponseDto(order));
     }
+
     // 주문 정보 조회 API
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseDto> getOrderById(@PathVariable Long orderId) {

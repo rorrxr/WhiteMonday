@@ -17,4 +17,5 @@ public class ProductDto {
     private LocalDateTime flashSaleStartTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String stockMessage; // 재고 메시지 추가
 }

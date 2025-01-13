@@ -41,6 +41,15 @@ public class ProductController {
         productDto.setStock(product.getStock());
         productDto.setFlashSale(product.isFlashSale());
 
+        // 재고가 적을 경우 "재고 부족" 메시지 추가
+        if (product.getStock() < 5) {
+            productDto.setStockMessage("재고 부족");
+        } else {
+            productDto.setStockMessage("재고 있음");
+        }
+
+        productDto.setFlashSaleStartTime(product.getFlashSaleStartTime());
+
         return ResponseEntity.ok(productDto);
     }
 
@@ -56,6 +65,14 @@ public class ProductController {
     public ResponseEntity<Integer> getRemainingStock(@PathVariable Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        // 재고가 5개 미만일 경우 경고 메시지 추가
+        if (product.getStock() < 5) {
+            // 재고 부족에 대해 클라이언트에게 알림
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(product.getStock()); // 422 상태 코드
+        }
+
         return ResponseEntity.ok(product.getStock());
     }
 

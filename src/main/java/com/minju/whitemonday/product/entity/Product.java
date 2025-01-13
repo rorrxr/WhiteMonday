@@ -28,6 +28,7 @@ public class Product {
     private int stock;
     private boolean isFlashSale;
     private LocalDateTime flashSaleStartTime;
+    private String stockMessage;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -42,6 +43,11 @@ public class Product {
         this.stock = stock;
         this.isFlashSale = isFlashSale;
         this.flashSaleStartTime = flashSaleStartTime;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.isFlashSale = false;
+        this.flashSaleStartTime = flashSaleStartTime;
+        this.stockMessage = "";
     }
 
 
