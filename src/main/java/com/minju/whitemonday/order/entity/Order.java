@@ -40,4 +40,11 @@ public class Order {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public Order(User user, String orderStatus, int totalAmount) {
+        this.user = user;
+        this.orderStatus = orderStatus;
+        this.totalAmount = totalAmount;
+    }
+
 }
