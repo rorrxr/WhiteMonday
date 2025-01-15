@@ -3,6 +3,7 @@ package com.minju.user.controller;
 import com.minju.user.dto.SignupRequestDto;
 import com.minju.user.dto.UserInfoDto;
 import com.minju.user.dto.UserRoleEnum;
+import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
 import com.minju.user.service.LogoutService;
 import com.minju.user.service.UserDetailsImpl;
@@ -107,6 +108,16 @@ public class UserController {
     }
 
 
+
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserInfoDto> getUserInfo(@PathVariable Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        UserInfoDto userInfoDto = new UserInfoDto(user.getUsername(), user.getRole() == UserRoleEnum.ADMIN);
+        return ResponseEntity.ok(userInfoDto);
+    }
 
 
     // 4. 사용자 정보 조회

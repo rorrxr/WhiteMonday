@@ -15,21 +15,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
+
 @RequestMapping("/api/wishlist")
 public class WishListController {
 
     private final WishListService wishListService;
-    UserServiceClient userServiceClient;
+    private final UserServiceClient userServiceClient ;
+
+
+    public WishListController(WishListService wishListService, UserServiceClient userServiceClient) {
+        this.wishListService = wishListService;
+        this.userServiceClient = userServiceClient;
+    }
 
 //     위시리스트 추가
     @PostMapping
     public ResponseEntity<WishListResponseDto> addToWishList(
             @Valid @RequestBody WishListCreateRequestDto requestDto,
-            @RequestHeader("X-User-Id") String userId) {
+            @RequestHeader("X-User-Id") Long userId) {
 
         // User service to validate user info
-        UserInfoDto userInfo = userServiceClient.getUserInfo(Long.valueOf(userId));
+        UserInfoDto userInfo = userServiceClient.getUserInfo(userId);
 
         if (userInfo == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

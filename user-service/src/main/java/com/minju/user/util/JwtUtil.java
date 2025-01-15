@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.*;
 
@@ -22,16 +23,37 @@ public class JwtUtil {
     private final long TOKEN_TIME = 60 * 60 * 1000L; // 60분
     private final long REFRESH_TOKEN_TIME = 7 * 24 * 60 * 60 * 1000L;
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret-key:}")
     private String secret;  // Base64로 인코딩된 비밀 키
     private Key key;  // SecretKey 객체
     private final SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
+    private SecretKey secretKey;
 
     @PostConstruct
     public void init() {
-        byte[] bytes = Base64.getDecoder().decode(secret);  // Base64 디코딩
-        key = Keys.hmacShaKeyFor(bytes);  // SecretKey 객체 생성
+        if (secret == null || secret.isEmpty()) {
+            log.error("JWT_SECRET_KEY is not set!");
+        } else {
+            log.info("JWT_SECRET_KEY loaded successfully");
+        }
+        byte[] bytes = Base64.getDecoder().decode(secret);
+        secretKey = Keys.hmacShaKeyFor(bytes);  // Base64 디코딩하여 SecretKey 생성
+        log.debug("Initialized secret key: {}", secretKey);
     }
+
+//    public String createToken(String username, UserRoleEnum role) {
+//        Date date = new Date();
+//        log.info("Starting JWT token generation for user: {}", username);
+//        return BEARER_PREFIX +
+//                Jwts.builder()
+//                        .setSubject(username)
+//                        .claim(AUTHORIZATION_KEY, role)
+//                        .claim("userId", username) // 사용자 ID 추가
+//                        .setExpiration(new Date(date.getTime() + TOKEN_TIME))
+//                        .setIssuedAt(date)
+//                        .signWith(key, signatureAlgorithm)
+//                        .compact();
+//    }
 
     public String createToken(String username, UserRoleEnum role) {
         Date date = new Date();
@@ -40,7 +62,7 @@ public class JwtUtil {
                 Jwts.builder()
                         .setSubject(username)
                         .claim(AUTHORIZATION_KEY, role)
-                        .claim("userId", username) // 사용자 ID 추가
+                        .claim("userId", Long.parseLong(username)) // 사용자 ID를 Long으로 변환하여 저장
                         .setExpiration(new Date(date.getTime() + TOKEN_TIME))
                         .setIssuedAt(date)
                         .signWith(key, signatureAlgorithm)

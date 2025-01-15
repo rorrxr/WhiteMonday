@@ -104,14 +104,4 @@ public class UserService {
         log.info("Token invalidated successfully.");
     }
 
-    @GetMapping("/api/user/{userId}")
-    public ResponseEntity<UserInfoDto> getUserInfo(@PathVariable Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        UserInfoDto userInfoDto = new UserInfoDto(user.getUsername(), user.getRole() == UserRoleEnum.ADMIN);
-        return ResponseEntity.ok(userInfoDto);
-    }
-
-
 }

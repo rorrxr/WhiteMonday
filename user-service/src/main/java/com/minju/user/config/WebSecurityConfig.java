@@ -2,7 +2,6 @@ package com.minju.user.config;
 
 
 import com.minju.user.security.JwtAuthenticationFilter;
-import com.minju.user.security.JwtAuthorizationFilter;
 import com.minju.user.service.UserDetailsServiceImpl;
 import com.minju.user.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,11 +55,11 @@ public class WebSecurityConfig {
 //    public JwtAuthorizationFilter jwtAuthorizationFilter() {
 //        return new JwtAuthorizationFilter(jwtUtil, userDetailsService, logoutService, userRepository);
 //    }
-
-    @Bean
-    public JwtAuthorizationFilter jwtAuthorizationFilter() {
-        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
-    }
+//
+//    @Bean
+//    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+//        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -75,7 +74,7 @@ public class WebSecurityConfig {
                                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                                 .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
                                 .requestMatchers("/api/user/send-verification-email", "/api/user/verify-email").permitAll()
-                                .requestMatchers("/api/products/**").permitAll()
+                                .requestMatchers("/api/user/**").permitAll()
                                 .requestMatchers("/api/wishlist/**").authenticated()
                                 .requestMatchers("/api/user/logout").authenticated()
                                 .anyRequest().authenticated()
@@ -91,7 +90,7 @@ public class WebSecurityConfig {
                 })
         );
 
-        http.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
+//        http.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
 

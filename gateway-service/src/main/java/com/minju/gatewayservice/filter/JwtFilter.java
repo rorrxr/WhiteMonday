@@ -2,6 +2,8 @@ package com.minju.gatewayservice.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,14 +22,16 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
 @Slf4j
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
-    @Value("${jwt.secret}")
-    private String secret;  // JwtUtil에서 사용하는 secretKey와 동일해야 함
+    @Value("${jwt.secret-key}")
+    private String secret;
+
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -39,9 +43,20 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
         this.objectMapper = objectMapper;
     }
 
+    @PostConstruct
+    public void init() {
+        if (secret == null || secret.isEmpty()) {
+            log.error("JWT_SECRET_KEY is not set!");
+        } else {
+            log.info("JWT_SECRET_KEY loaded successfully");
+        }
+        byte[] bytes = Base64.getDecoder().decode(secret);
+        secretKey = Keys.hmacShaKeyFor(bytes);  // Base64 디코딩하여 SecretKey 생성
+        log.debug("Initialized secret key: {}", secretKey);
+    }
+
     @Override
     public GatewayFilter apply(Config config) {
-        secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
         log.debug("Using secret key: {}", secretKey);
 
         return (exchange, chain) -> {
@@ -113,13 +128,13 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
         return requiredRole.equals(userRole) || ("USER".equals(requiredRole) && "ADMIN".equals(userRole));
     }
 
-    private Long getUserId(String token) {
-        return Jwts.parserBuilder()
+    private String getUserId(String token) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .get("userId", Long.class);
+                .getBody();
+        return claims.get("userId", String.class);
     }
 
     private String getRole(String token) {
@@ -128,17 +143,23 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
-                .get("role", String.class);
+                .get("auth", String.class);
     }
 
     private Boolean isExpired(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getExpiration()
-                .before(new Date());
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(secretKey) // SecretKeySpec으로 생성된 secretKey 사용
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Date expirationDate = claims.getExpiration(); // 토큰 만료일 가져오기
+            return expirationDate.before(new Date()); // 만료 여부 확인
+        } catch (JwtException e) {
+            log.error("Error parsing token for expiration check: {}", e.getMessage());
+            throw new RuntimeException("Invalid token", e); // 필요한 경우 적절한 예외 처리
+        }
     }
 
     @Data
