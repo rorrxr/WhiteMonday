@@ -1,4 +1,4 @@
-FROM gradle:8.11.1-jdk17 AS builder
+FROM gradle:8.11.1-jdk21 AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY . .
 # Run Gradle build with Java 21 compatibility
 RUN gradle :eureka-server:build -x test --no-daemon --info
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 

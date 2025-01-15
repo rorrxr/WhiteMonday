@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.4.0'
+	id 'org.springframework.boot' version '3.3.6'
 	id 'io.spring.dependency-management' version '1.1.6'
 }
 
@@ -9,19 +9,20 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
-
 repositories {
-	mavenCentral() // Maven Central Repository
-	// jcenter() // 필요한 경우 JCenter 추가
+	mavenCentral()
+}
+
+ext {
+	set('springCloudVersion', "2023.0.4")
 }
 
 dependencies {
 	// Spring Boot
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa' // JPA
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-validation' // 유효성 검증 의존성
@@ -49,14 +50,12 @@ dependencies {
 	implementation project(':common')
 
 	// Test dependencies
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 dependencyManagement {
 	imports {
-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.0" // Spring Cloud BOM 설정
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.4" // Spring Cloud BOM 설정
 	}
 }
 

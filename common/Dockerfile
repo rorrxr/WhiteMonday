@@ -1,4 +1,4 @@
-FROM gradle:8.11.1-jdk17 AS builder
+FROM gradle:8.11.1-jdk21 AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY . .
 RUN gradle :common:build -x test --no-daemon
 
 # 실제 실행에 사용할 이미지
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
