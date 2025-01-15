@@ -49,6 +49,14 @@ public class Product {
         this.flashSaleStartTime = flashSaleStartTime;
         this.stockMessage = "";
     }
-
+    public Product(String title, String description, int price, int stock) {
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.stock = stock;
+        this.isFlashSale = false; // 기본값 설정
+        this.createdAt = LocalDateTime.now(); // 현재 시간으로 초기화
+        this.updatedAt = LocalDateTime.now();
+    }
 
 }

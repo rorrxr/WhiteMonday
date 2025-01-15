@@ -47,4 +47,8 @@ public class Order {
         this.totalAmount = totalAmount;
     }
 
+    @Column(name = "reserved", nullable = false)
+    private Boolean reserved = false;
+
+
 }

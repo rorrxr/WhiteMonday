@@ -83,4 +83,9 @@ public class JwtUtil {
     public Claims getUserInfoFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
+
+    public String extractUsername(String token) {
+        Claims claims = getUserInfoFromToken(token);
+        return claims.getSubject(); // 토큰의 subject 값(username)을 반환
+    }
 }
