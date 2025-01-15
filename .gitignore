@@ -38,5 +38,3 @@ out/
 
 application.properties
 .env
-
-*.yml
