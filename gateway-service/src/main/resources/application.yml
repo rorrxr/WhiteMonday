@@ -1,0 +1,71 @@
+server:
+  port: 8000
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+
+  instance:
+    lease-renewal-interval-in-seconds: ${EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS:10}
+    lease-expiration-duration-in-seconds: ${EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS:30}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    non-secure-port-enabled: true
+    metadata-map:
+      instanceId: ${spring.application.name}:${random.value}
+
+spring:
+  application:
+    name: gateway-service
+
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/user-service/**
+          filters:
+            - StripPrefix=1
+
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/**
+          filters:
+            - StripPrefix=1
+            - name: JwtFilter
+              args:
+                requiredRole: USER
+
+        - id: wishlist-service
+          uri: lb://wishlist-service
+          predicates:
+            - Path=/wishlist-service/**
+          filters:
+            - StripPrefix=1
+            - name: JwtFilter
+              args:
+                requiredRole: USER
+
+      default-filters:
+        - name: GlobalFilter
+          args:
+            baseMessage: "Spring Cloud Gateway Global Filter"
+            preLogger: true
+            postLogger: true
+
+
+    compatibility-verifier:
+      enabled: false
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.netflix.eureka: DEBUG

@@ -1,0 +1,56 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: user-service
+  config:
+    import: "optional:file:./user-service/.env"
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+  main:
+    web-application-type: servlet
+    log-startup-info: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5000
+    disable-delta: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+logging:
+  level:
+    org.springframework.cloud: DEBUG
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+
+encryption:
+  secret-key: ${ENCRYPTION_SECRET_KEY}

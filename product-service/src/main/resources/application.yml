@@ -1,0 +1,40 @@
+
+server:
+  port: 8082
+spring:
+  application:
+    name: product-service
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+  main:
+    web-application-type: servlet
+    log-startup-info: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5000
+    disable-delta: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+logging:
+  level:
+    org.springframework.cloud: DEBUG
+jwt:
+  secret: ${JWT_SECRET_KEY}
