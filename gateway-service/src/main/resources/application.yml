@@ -37,9 +37,6 @@ spring:
             - Path=/product-service/**
           filters:
             - StripPrefix=1
-            - name: JwtFilter
-              args:
-                requiredRole: USER
 
         - id: wishlist-service
           uri: lb://wishlist-service
@@ -47,9 +44,6 @@ spring:
             - Path=/wishlist-service/**
           filters:
             - StripPrefix=1
-            - name: JwtFilter
-              args:
-                requiredRole: USER
 
       default-filters:
         - name: GlobalFilter

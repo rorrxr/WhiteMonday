@@ -27,7 +27,7 @@ spring:
             required: true
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     database: mysql
     database-platform: org.hibernate.dialect.MySQLDialect
   main:

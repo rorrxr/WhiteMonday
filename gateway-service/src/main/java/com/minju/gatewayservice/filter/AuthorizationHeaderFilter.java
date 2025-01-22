@@ -1,5 +1,6 @@
 package com.minju.gatewayservice.filter;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -36,7 +37,12 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
+            String path = request.getPath().toString();
 
+            // 경로 확인: /signup 및 /login 요청은 필터를 건너뜀
+            if (path.contains("/signup") || path.contains("/login")) {
+                return chain.filter(exchange);
+            }
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return onError(exchange, "No authorization header", HttpStatus.UNAUTHORIZED);
             }
@@ -80,19 +86,22 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
     private boolean isJwtValid(String jwt) {
         boolean returnValue = true;
 
-        String subject = null;
-
         try {
-            subject = Jwts
+            String subject = Jwts
                     .parser()
                     .setSigningKey(env.getProperty("token.secret"))
-                    .parseClaimsJws(jwt).getBody()
+                    .parseClaimsJws(jwt)
+                    .getBody()
                     .getSubject();
-        } catch (Exception ex) {
-            returnValue = false;
-        }
 
-        if (subject == null || subject.isEmpty()) {
+            if (subject == null || subject.isEmpty()) {
+                returnValue = false;
+            }
+        } catch (ExpiredJwtException ex) {
+            log.error("JWT token is expired");
+            returnValue = false;
+        } catch (Exception ex) {
+            log.error("Invalid JWT token: {}", ex.getMessage());
             returnValue = false;
         }
 

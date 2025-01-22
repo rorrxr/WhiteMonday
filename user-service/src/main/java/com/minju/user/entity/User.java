@@ -2,13 +2,13 @@ package com.minju.user.entity;
 
 import com.minju.user.dto.UserRoleEnum;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "user")
 public class User {
@@ -30,7 +30,7 @@ public class User {
     private UserRoleEnum role;
 
     @Column(nullable = true)
-    private Long lastPasswordUpdateTime = System.currentTimeMillis(); // 비밀번호 변경 시점 초기화
+    private Long lastPasswordUpdateTime;
 
     @Column(nullable = true)
     private String address;
@@ -38,12 +38,5 @@ public class User {
     @Column(nullable = true)
     private String name;
 
-    public User(String username, String password, String email, UserRoleEnum role) {
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.role = role;
-    }
-
-    private boolean isEnabled = false; // 기본값 비활성화
+    private boolean isEnabled;
 }

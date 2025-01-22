@@ -1,22 +1,32 @@
 package com.minju.user.service;
 
 import com.minju.user.dto.SignupRequestDto;
-import com.minju.user.dto.UserInfoDto;
 import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
-import com.minju.user.repository.VerificationTokenRepository;
 import com.minju.user.util.EncryptionUtil;
 import com.minju.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+
+import com.minju.user.dto.UserRoleEnum;
+import com.minju.user.entity.User;
+import com.minju.user.repository.UserRepository;
+import com.minju.user.util.JwtUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -25,83 +35,80 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EncryptionUtil encryptionUtil;
-
     private final JwtUtil jwtUtil;
     private final LogoutService logoutService;
 
-    // ADMIN_TOKEN
-    private final String ADMIN_TOKEN = "AAABnvxRVklrnYxKZ0aHgTBcXukeZygoC";
-
     // 회원가입
     public void signup(SignupRequestDto requestDto) {
-        log.info("Starting user signup for username: {}", requestDto.getUsername());
+        log.info("Starting signup for user: {}", requestDto.getUsername());
 
-        String username = requestDto.getUsername();
-        String password = passwordEncoder.encode(requestDto.getPassword());
-        String email = encryptionUtil.encrypt(requestDto.getEmail());
-        String address = encryptionUtil.encrypt(requestDto.getAddress());
-        String name = encryptionUtil.encrypt(requestDto.getName());
-
-        log.info("Encrypted data - Email: {}, Address: {}, Name: {}", email, address, name);
-
-        // 회원 중복 확인
-        Optional<User> checkUsername = userRepository.findByUsername(username);
-        if (checkUsername.isPresent()) {
-            log.error("Username already exists: {}", requestDto.getUsername());
-            throw new IllegalArgumentException("중복된 사용자가 존재합니다.");
+        // 중복 확인
+        if (userRepository.findByUsername(requestDto.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 사용자입니다.");
         }
 
-        // Email 중복확인
-        Optional<User> checkEmail = userRepository.findByEmail(email);
-        if (checkEmail.isPresent()) {
-            throw new IllegalArgumentException("중복된 Email 입니다.");
+        if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
-        // 사용자 ROLE 확인
-        UserRoleEnum role = UserRoleEnum.USER;
-        if (requestDto.isAdmin()) {
-            if (!ADMIN_TOKEN.equals(requestDto.getAdminToken())) {
-                throw new IllegalArgumentException("관리자 암호가 틀려 등록이 불가능합니다.");
-            }
-            role = UserRoleEnum.ADMIN;
-        }
+        // 사용자 저장
+        User user = User.builder()
+                .username(requestDto.getUsername())
+                .password(passwordEncoder.encode(requestDto.getPassword()))
+                .email(requestDto.getEmail())
+                .role(UserRoleEnum.USER)
+                .isEnabled(true)
+                .build();
 
-        // 사용자 등록
-        User user = new User(username, password, email, role);
-        user.setAddress(address);
-        user.setName(name);
         userRepository.save(user);
-        log.info("User saved successfully with username: {}", requestDto.getUsername());
+        log.info("User signup successful for: {}", requestDto.getUsername());
     }
 
     // 로그인
-    public String login(String username, String password) {
-        log.info("Starting login process for username: {}", username);
+    public Map<String, String> login(String username, String password) {
+        log.info("Attempting login for username: {}", username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    log.error("Invalid username: {}", username);
-                    return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-                });
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            log.error("Invalid password for username: {}", username);
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // JWT 생성
-        String token = jwtUtil.createToken(username, user.getRole());
-        log.info("Generated JWT for username: {}", username);
+        String accessToken = jwtUtil.createAccessToken(username, user.getRole().getAuthority());
 
-        return token;
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", accessToken);
+        return tokens;
     }
 
     // 로그아웃
     public void logout(String token) {
-        log.info("Logging out token: {}", token);
-        logoutService.invalidateToken(token);
-        log.info("Token invalidated successfully.");
+        if (!jwtUtil.validateToken(token)) {
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
+        }
+
+        String username = jwtUtil.extractUsername(token);
+        log.info("Logging out user with username: {}", username);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        logoutService.invalidateToken(token); // 토큰 블랙리스트 추가
+        log.info("Token invalidated successfully for user: {}", username);
     }
 
+    // Access Token 재발급
+    public String refreshAccessToken(String accessToken) {
+        if (!jwtUtil.validateToken(accessToken)) {
+            throw new IllegalArgumentException("액세스 토큰이 유효하지 않습니다.");
+        }
+
+        String username = jwtUtil.extractClaims(accessToken).getSubject();
+
+        userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return jwtUtil.createAccessToken(username, "ROLE_USER");
+    }
 }

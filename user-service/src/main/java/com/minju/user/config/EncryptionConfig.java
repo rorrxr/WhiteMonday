@@ -10,11 +10,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 
 @Slf4j
 @Configuration
-@EnableWebSecurity // Spring Security 지원을 가능하게 함
 @RequiredArgsConstructor
 public class EncryptionConfig {
 
-    @Value("U29tZVNlY3JldEtleVdpdGhFbWFpbEFuZEFkZHJlc3M=")
+    @Value("${encryption.secret-key}")
     private String secretKey;
 
     @Bean

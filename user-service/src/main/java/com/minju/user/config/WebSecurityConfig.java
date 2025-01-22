@@ -1,8 +1,7 @@
 package com.minju.user.config;
 
-
 import com.minju.user.security.JwtAuthenticationFilter;
-import com.minju.user.service.UserDetailsServiceImpl;
+import com.minju.user.security.JwtAuthorizationFilter;
 import com.minju.user.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,17 +20,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
 @Slf4j
 @Configuration
-@EnableWebSecurity // Spring Security 지원을 가능하게 함
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class WebSecurityConfig {
 
     private final JwtUtil jwtUtil;
-    private final UserDetailsServiceImpl userDetailsService;
-    //    private final LogoutService logoutService;
-//    private final UserRepository userRepository;
     private final AuthenticationConfiguration authenticationConfiguration;
 
     @Bean
@@ -51,15 +46,10 @@ public class WebSecurityConfig {
         return filter;
     }
 
-//    @Bean
-//    public JwtAuthorizationFilter jwtAuthorizationFilter() {
-//        return new JwtAuthorizationFilter(jwtUtil, userDetailsService, logoutService, userRepository);
-//    }
-//
-//    @Bean
-//    public JwtAuthorizationFilter jwtAuthorizationFilter() {
-//        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
-//    }
+    @Bean
+    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+        return new JwtAuthorizationFilter(jwtUtil);
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -69,15 +59,14 @@ public class WebSecurityConfig {
                 sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        http.authorizeHttpRequests(authorizeHttpRequests ->
-                        authorizeHttpRequests
-                                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                                .requestMatchers("/api/user/signup", "/api/user/login").permitAll()
-                                .requestMatchers("/api/user/send-verification-email", "/api/user/verify-email").permitAll()
-                                .requestMatchers("/api/user/**").permitAll()
-                                .requestMatchers("/api/wishlist/**").authenticated()
-                                .requestMatchers("/api/user/logout").authenticated()
-                                .anyRequest().authenticated()
+        http.authorizeHttpRequests(authorizeRequests ->
+                authorizeRequests
+                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+                        .requestMatchers("/user-service/api/user/login").permitAll() // 로그인 경로 허용
+                        .requestMatchers("/api/user/signup").permitAll() // 회원가입 경로 허용
+                        .requestMatchers("/wishlist-service/api/wishlist/**").authenticated()
+                        .requestMatchers("/user-service/api/user/logout").authenticated()
+                        .anyRequest().authenticated()
         );
 
         http.formLogin(AbstractHttpConfigurer::disable);
@@ -90,9 +79,9 @@ public class WebSecurityConfig {
                 })
         );
 
-//        http.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-
+        // 필터 추가
+        http.addFilterAt(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
