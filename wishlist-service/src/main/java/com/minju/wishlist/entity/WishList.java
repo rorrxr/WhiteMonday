@@ -1,10 +1,7 @@
 package com.minju.wishlist.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 
 import java.time.LocalDateTime;
@@ -14,6 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "wishlist")
 public class WishList {
     @Id
@@ -30,15 +28,16 @@ public class WishList {
     private int quantity;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 
-    public WishList(Long userId, Long productId, int quantity) {
-        this.userId = userId;
-        this.productId = productId;
-        this.quantity = quantity;
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
     }
 
-    public void updateQuantity(int quantity) {
-        this.quantity = quantity;
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }
