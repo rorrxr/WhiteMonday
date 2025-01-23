@@ -29,7 +29,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 	// Spring Cloud
-	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client' // 서비스 등록 및 발견
 
 	// Database

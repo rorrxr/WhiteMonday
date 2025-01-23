@@ -13,7 +13,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: create
     database: mysql
     database-platform: org.hibernate.dialect.MySQLDialect
   main:
