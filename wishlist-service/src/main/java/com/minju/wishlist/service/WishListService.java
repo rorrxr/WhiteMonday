@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.minju.common.dto.ProductDto;
 import com.minju.wishlist.client.ProductServiceClient;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,14 +25,15 @@ public class WishListService {
 
     // 위시리스트 조회
     @Transactional(readOnly = true)
-    public WishListResponseDto wishList(Long userId) {
-        WishList wishList = wishListRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("위시리스트가 존재하지 않습니다."));
+    public List<WishListResponseDto> getWishLists(Long userId) {
+        // 유저의 위시리스트 항목 조회
+        List<WishList> wishLists = wishListRepository.findByUserId(userId);
 
-        // 상품 정보 가져오기
-        ProductDto product = productServiceClient.getProductById(wishList.getProductId());
-
-        return new WishListResponseDto(wishList, product);
+        // 상품 정보를 포함한 응답 데이터로 변환
+        return wishLists.stream().map(wishList -> {
+            ProductDto product = productServiceClient.getProductById(wishList.getProductId());
+            return new WishListResponseDto(wishList, product);
+        }).collect(Collectors.toList());
     }
 
     // 위시리스트 추가
