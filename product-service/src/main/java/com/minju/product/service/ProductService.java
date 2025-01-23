@@ -98,5 +98,11 @@ public class ProductService {
         product.setStock(product.getStock() + count);
         productRepository.save(product);
     }
+
+    public int getRemainingStock(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        return product.getStock();
+    }
 }
 

@@ -74,4 +74,11 @@ public class ProductController {
         productService.increaseStock(productId, count);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    // 상품 남은 수량 조회
+    @GetMapping("/{id}/remaining-stock")
+    public ResponseEntity<Integer> getRemainingStock(@PathVariable("id") Long productId) {
+        int remainingStock = productService.getRemainingStock(productId);
+        return ResponseEntity.ok(remainingStock);
+    }
 }
