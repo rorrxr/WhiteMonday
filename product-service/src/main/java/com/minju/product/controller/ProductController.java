@@ -56,4 +56,22 @@ public class ProductController {
 
         return ResponseEntity.ok(productDto);
     }
+
+    // 재고 감소
+    @PostMapping("/{id}/decrease-stock")
+    public ResponseEntity<Void> decreaseStock(
+            @PathVariable("id") Long productId,
+            @RequestParam("count") int count) {
+        productService.decreaseStock(productId, count);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    // 재고 증가
+    @PostMapping("/{id}/increase-stock")
+    public ResponseEntity<Void> increaseStock(
+            @PathVariable("id") Long productId,
+            @RequestParam("count") int count) {
+        productService.increaseStock(productId, count);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

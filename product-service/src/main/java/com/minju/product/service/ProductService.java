@@ -77,5 +77,26 @@ public class ProductService {
                 product.getUpdatedAt()
         );
     }
+
+
+    public void decreaseStock(Long productId, int count) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        if (product.getStock() < count) {
+            throw new IllegalArgumentException("재고가 부족합니다.");
+        }
+
+        product.setStock(product.getStock() - count);
+        productRepository.save(product);
+    }
+
+    public void increaseStock(Long productId, int count) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        product.setStock(product.getStock() + count);
+        productRepository.save(product);
+    }
 }
 
