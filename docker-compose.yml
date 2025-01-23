@@ -6,8 +6,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-    #      MYSQL_USER: ${DB_USERNAME}
-    #      MYSQL_PASSWORD: ${DB_PASSWORD}
     healthcheck:
       test: [ "CMD-SHELL", "mysqladmin ping -h localhost" ]
       interval: 10s
@@ -17,6 +15,16 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    networks:
+      - commerce-network
+  redis:
+    image: redis:7.0
+    container_name: redis-container
+    restart: always
+    ports:
+      - "6379:6379" # 로컬 6379 포트를 컨테이너의 6379 포트로 매핑
+    volumes:
+      - redis-data:/data # Redis 데이터 영속성
     networks:
       - commerce-network
 
@@ -129,6 +137,8 @@ services:
       - commerce-network
 volumes:
   mysql-data:
+  redis-data:
+
 
 networks:
   commerce-network:

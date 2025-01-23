@@ -78,7 +78,7 @@ public class ProductController {
     // 상품 남은 수량 조회
     @GetMapping("/{id}/remaining-stock")
     public ResponseEntity<Integer> getRemainingStock(@PathVariable("id") Long productId) {
-        int remainingStock = productService.getRemainingStock(productId);
+        int remainingStock = productService.getStock(productId);
         return ResponseEntity.ok(remainingStock);
     }
 }
