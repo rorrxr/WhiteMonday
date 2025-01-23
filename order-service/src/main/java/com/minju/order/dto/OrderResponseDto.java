@@ -1,6 +1,6 @@
 package com.minju.order.dto;
 
-import com.minju.order.entity.Order;
+import com.minju.order.entity.Orders;
 import com.minju.order.entity.OrderItem;
 import lombok.Getter;
 
@@ -18,8 +18,8 @@ public class OrderResponseDto {
     private LocalDateTime updatedAt;
     private List<OrderItemDto> items;
 
-    public OrderResponseDto(Order order) {
-        this.orderId = order.getOrderId();
+    public OrderResponseDto(Orders order) {
+        this.orderId = order.getId(); // 엔티티에서 getId() 메서드를 호출
         this.orderStatus = order.getOrderStatus();
         this.totalAmount = order.getTotalAmount();
         this.createdAt = order.getCreatedAt();
@@ -33,16 +33,13 @@ public class OrderResponseDto {
     @Getter
     public static class OrderItemDto {
         private Long productId;
-        private String productName;
         private int quantity;
         private int price;
 
         public OrderItemDto(OrderItem orderItem) {
-            this.productId = orderItem.getProduct().getId();
-            this.productName = orderItem.getProduct().getTitle();
+            this.productId = orderItem.getProductId(); // OrderItem에서 productId 직접 참조
             this.quantity = orderItem.getQuantity();
             this.price = orderItem.getPrice();
         }
     }
 }
-

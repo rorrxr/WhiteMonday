@@ -1,6 +1,5 @@
 package com.minju.order.entity;
 
-import com.minju.user.entity.User;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import jakarta.persistence.*;
@@ -20,16 +19,20 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "orders")
-public class Order {
+public class Orders {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long orderId;
+    @Column(name = "order_id", nullable = false, columnDefinition = "BIGINT")
+    private Long id; // Primary Key
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false, columnDefinition = "BIGINT")
+    private Long userId;
 
+    @Column(name = "order_status", nullable = false)
     private String orderStatus;
+
+    @Column(name = "total_amount", nullable = false)
     private int totalAmount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -40,4 +43,7 @@ public class Order {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(nullable = false, columnDefinition = "int default 0")
+    private int reserved = 0; // 기본값 0
 }

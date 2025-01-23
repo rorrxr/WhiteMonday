@@ -15,4 +15,4 @@ pluginManagement {
 rootProject.name = 'WhiteMonday'
 
 // 최상위 디렉토리 모듈
-include 'common', 'eureka-server', 'gateway-service', 'user-service', 'product-service', 'wishlist-service'
+include 'common', 'eureka-server', 'gateway-service', 'user-service', 'product-service', 'wishlist-service', 'order-service'

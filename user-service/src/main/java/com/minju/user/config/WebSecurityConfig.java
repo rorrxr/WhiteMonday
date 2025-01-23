@@ -64,6 +64,7 @@ public class WebSecurityConfig {
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .requestMatchers("/user-service/api/user/login").permitAll() // 로그인 경로 허용
                         .requestMatchers("/api/user/signup").permitAll() // 회원가입 경로 허용
+                        .requestMatchers("/api/orders/**").permitAll()
                         .requestMatchers("/wishlist-service/api/wishlist/**").authenticated()
                         .requestMatchers("/user-service/api/user/logout").authenticated()
                         .anyRequest().authenticated()

@@ -1,15 +1,14 @@
 package com.minju.order.service;
 
+import com.minju.common.dto.ProductDto;
+import com.minju.order.client.ProductServiceClient;
 import com.minju.order.dto.OrderRequestDto;
 import com.minju.order.dto.OrderResponseDto;
-import com.minju.order.entity.Order;
+import com.minju.order.entity.Orders;
 import com.minju.order.entity.OrderItem;
-import com.minju.order.repository.OrderItemRepository;
 import com.minju.order.repository.OrderRepository;
-import com.minju.product.entity.Product;
-import com.minju.product.repository.ProductRepository;
-import com.minju.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,37 +18,42 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
+
+    private final ProductServiceClient productServiceClient;
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
-    private final OrderItemRepository orderItemRepository;
 
     @Transactional
-    public OrderResponseDto createOrder(OrderRequestDto requestDto, User user) {
-        // Order 생성
-        Order order = new Order();
-        order.setUser(user);
+    public OrderResponseDto createOrder(Long userId, OrderRequestDto requestDto) {
+        log.info("createOrder - userId: {}, requestDto: {}", userId, requestDto);
+
+        // 주문 생성
+        Orders order = new Orders();
+        order.setUserId(userId);
         order.setOrderStatus("PENDING");
-        order.setTotalAmount(0);
-        order = orderRepository.save(order);
+        orderRepository.save(order);
 
         int totalAmount = 0;
 
-        // OrderItem 생성
+        // 각 상품에 대해 재고 확인 및 주문 항목 생성
         for (OrderRequestDto.Item item : requestDto.getItems()) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+            log.info("Processing item - productId: {}, quantity: {}", item.getProductId(), item.getQuantity());
+
+            ProductDto product = productServiceClient.getProductById(item.getProductId());
+            if (product.getStock() < item.getQuantity()) {
+                throw new IllegalArgumentException("재고가 부족합니다: " + product.getTitle());
+            }
+
+            productServiceClient.decreaseStock(item.getProductId(), item.getQuantity());
 
             OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order); // Order와 연결
-            orderItem.setProduct(product);
+            orderItem.setOrder(order);
+            orderItem.setProductId(item.getProductId());
             orderItem.setQuantity(item.getQuantity());
             orderItem.setPrice(product.getPrice() * item.getQuantity());
             totalAmount += orderItem.getPrice();
 
-            orderItemRepository.save(orderItem);
-
-            // Order의 orderItems에 추가
             order.getOrderItems().add(orderItem);
         }
 
@@ -57,80 +61,87 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
+        log.info("Order created successfully - orderId: {}", order.getId());
         return new OrderResponseDto(order);
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponseDto> getOrders(User user) {
-        List<Order> orders = orderRepository.findAllByUser(user);
+    public List<OrderResponseDto> getOrders(Long userId) {
+        List<Orders> orders = orderRepository.findByUserId(userId);
         return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional
-    public void cancelOrder(Long orderId, User user) {
-        Order order = orderRepository.findByOrderIdAndUser(orderId, user)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-
-        if ("SHIPPING".equals(order.getOrderStatus())) {
-            throw new IllegalStateException("배송 중인 주문은 취소할 수 없습니다.");
-        }
-
-        if ("DELIVERED".equals(order.getOrderStatus())) {
-            throw new IllegalStateException("배송 완료된 주문은 취소할 수 없습니다.");
-        }
+    public OrderResponseDto cancelOrder(Long orderId, Long userId) {
+        Orders order = getOrder(orderId, userId);
+        validateOrderStatus(order, List.of("PENDING", "PROCESSING"));
 
         order.setOrderStatus("CANCELLED");
-
-        // 재고 복구
-        order.getOrderItems().forEach(orderItem -> {
-            Product product = orderItem.getProduct();
-            product.setStock(product.getStock() + orderItem.getQuantity());
-            productRepository.save(product);
-        });
+        order.getOrderItems().forEach(orderItem ->
+                productServiceClient.increaseStock(orderItem.getProductId(), orderItem.getQuantity()));
 
         orderRepository.save(order);
+        return new OrderResponseDto(order);
     }
 
     @Transactional
-    public void returnOrder(Long orderId, User user) {
-        Order order = orderRepository.findByOrderIdAndUser(orderId, user)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-
-        if (!"DELIVERED".equals(order.getOrderStatus())) {
-            throw new IllegalStateException("배송 완료된 주문만 반품할 수 있습니다.");
-        }
-
-        if (order.getUpdatedAt().plusDays(1).isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("반품 가능 기간이 지났습니다.");
-        }
+    public OrderResponseDto returnOrder(Long orderId, Long userId) {
+        Orders order = getOrder(orderId, userId);
+        validateOrderStatus(order, List.of("DELIVERED"));
 
         order.setOrderStatus("RETURNED");
-
-        // 재고 복구는 D+1에 진행
-        order.getOrderItems().forEach(orderItem -> {
-            Product product = orderItem.getProduct();
-            product.setStock(product.getStock() + orderItem.getQuantity());
-            productRepository.save(product);
-        });
+        order.getOrderItems().forEach(orderItem ->
+                productServiceClient.increaseStock(orderItem.getProductId(), orderItem.getQuantity()));
 
         orderRepository.save(order);
+        return new OrderResponseDto(order);
     }
 
     @Transactional
     public void updateOrderStatus() {
-        List<Order> orders = orderRepository.findAll();
-
+        List<Orders> orders = orderRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
 
-        for (Order order : orders) {
+        orders.forEach(order -> {
             if ("PENDING".equals(order.getOrderStatus()) && order.getCreatedAt().plusDays(1).isBefore(now)) {
                 order.setOrderStatus("SHIPPING");
             } else if ("SHIPPING".equals(order.getOrderStatus()) && order.getCreatedAt().plusDays(2).isBefore(now)) {
                 order.setOrderStatus("DELIVERED");
             }
-        }
+        });
 
-        // 변경된 주문 상태를 저장
         orderRepository.saveAll(orders);
+    }
+
+    private ProductDto validateProductStock(Long productId, int quantity) {
+        ProductDto product = productServiceClient.getProductById(productId);
+        if (product.getStock() < quantity) {
+            throw new IllegalArgumentException("재고가 부족합니다: " + product.getTitle());
+        }
+        return product;
+    }
+
+    private Orders getOrder(Long orderId, Long userId) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문이 존재하지 않습니다."));
+        if (!order.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("권한이 없습니다.");
+        }
+        return order;
+    }
+
+    private void validateOrderStatus(Orders order, List<String> allowedStatuses) {
+        if (!allowedStatuses.contains(order.getOrderStatus())) {
+            throw new IllegalStateException("현재 상태에서는 작업을 수행할 수 없습니다: " + order.getOrderStatus());
+        }
+    }
+
+    private OrderItem createOrderItem(Orders order, ProductDto product, OrderRequestDto.Item item) {
+        OrderItem orderItem = new OrderItem();
+        orderItem.setOrder(order);
+        orderItem.setProductId(item.getProductId());
+        orderItem.setQuantity(item.getQuantity());
+        orderItem.setPrice(product.getPrice() * item.getQuantity());
+        return orderItem;
     }
 }
