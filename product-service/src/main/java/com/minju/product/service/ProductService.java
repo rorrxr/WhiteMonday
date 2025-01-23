@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -89,21 +90,32 @@ public class ProductService {
     }
 
     // 재고 감소
+    @Transactional
     public void decreaseStock(Long productId, int count) {
         String redisKey = PRODUCT_KEY_PREFIX + productId;
-        RLock lock = redissonClient.getLock("lock:" + redisKey); // 동시성 제어를 위한 락
+        RLock lock = redissonClient.getLock("lock:" + redisKey);
 
-        lock.lock();
         try {
-            Integer currentStock = getStock(productId); // Redis에서 재고 조회
+            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) {
+                Integer currentStock = getStock(productId);
 
-            if (currentStock < count) {
-                throw new IllegalArgumentException("재고가 부족합니다.");
+                if (currentStock < count) {
+                    throw new IllegalArgumentException("재고가 부족합니다.");
+                }
+
+                // Redis와 DB에서 재고 감소
+                redisTemplate.opsForValue().set(redisKey, currentStock - count);
+
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                product.setStock(product.getStock() - count);
+                productRepository.save(product);
+            } else {
+                throw new IllegalStateException("동시에 너무 많은 요청이 처리 중입니다. 잠시 후 다시 시도하세요.");
             }
-
-            // Redis에서 재고 감소
-            redisTemplate.opsForValue().set(redisKey, currentStock - count);
-
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("재고 감소 중 오류가 발생했습니다.", e);
         } finally {
             lock.unlock();
         }
@@ -126,21 +138,28 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    private void cacheStock(Long productId, int stock) {
+        String redisKey = PRODUCT_KEY_PREFIX + productId;
+        redisTemplate.opsForValue().set(redisKey, stock, Duration.ofMinutes(10));
+    }
+
     // Redis에서 재고 조회
     public int getStock(Long productId) {
         String redisKey = PRODUCT_KEY_PREFIX + productId;
-
-        // Redis에서 재고 조회
         Integer stock = redisTemplate.opsForValue().get(redisKey);
 
         if (stock == null) {
-            // Redis에 캐싱이 없으면 DB에서 조회 후 캐싱
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
             stock = product.getStock();
-            redisTemplate.opsForValue().set(redisKey, stock, Duration.ofMinutes(10)); // 캐싱 시간 10분
+            cacheStock(productId, stock); // 캐싱 초기화
         }
-
         return stock;
+    }
+
+    public int getRemainingStock(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        return product.getStock();
     }
 }
