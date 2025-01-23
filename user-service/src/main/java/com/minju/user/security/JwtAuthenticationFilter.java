@@ -52,12 +52,13 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException {
         UserDetailsImpl userDetails = (UserDetailsImpl) authResult.getPrincipal();
         String username = userDetails.getUsername();
+        Long userId = userDetails.getUser().getId();
         UserRoleEnum role = userDetails.getUser().getRole();
 
         log.info("Authentication successful for username: {}", username);
 
         // 액세스 토큰과 리프레시 토큰 생성
-        String accessToken = jwtUtil.createAccessToken(username, role.getAuthority());
+        String accessToken = jwtUtil.createAccessToken(userId, username, role.getAuthority());
 //        String refreshToken = jwtUtil.createRefreshToken(username);
 
         log.info("Generated Access Token: {}", accessToken);

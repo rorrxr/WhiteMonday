@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
@@ -21,12 +22,13 @@ public class JwtUtil {
     public static final String BEARER_PREFIX = "Bearer ";
 
     public JwtUtil(@Value("${jwt.secret-key}") String secretKey) {
-        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
+        this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)); // 그대로 유지
     }
 
-    public String createAccessToken(String username, String role) {
+    public String createAccessToken(Long userId, String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("userId", userId)
                 .claim("auth", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 60 * 60 * 1000))

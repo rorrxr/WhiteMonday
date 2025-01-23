@@ -20,7 +20,6 @@ eureka:
 spring:
   application:
     name: gateway-service
-
   cloud:
     gateway:
       routes:
@@ -37,6 +36,7 @@ spring:
             - Path=/product-service/**
           filters:
             - StripPrefix=1
+            - AuthorizationFilter # 필터 추가
 
         - id: wishlist-service
           uri: lb://wishlist-service
@@ -44,6 +44,7 @@ spring:
             - Path=/wishlist-service/**
           filters:
             - StripPrefix=1
+            - AuthorizationFilter # 필터 추가
 
         - id: order-service
           uri: lb://order-service
@@ -51,6 +52,7 @@ spring:
             - Path=/order-service/**
           filters:
             - StripPrefix=1
+            - AuthorizationFilter # 필터 추가
 
         - id: payment-service
           uri: lb://payment-service
@@ -58,6 +60,8 @@ spring:
             - Path=/payment-service/**
           filters:
             - StripPrefix=1
+            - AuthorizationFilter # 필터 추가
+
 
       default-filters:
         - name: GlobalFilter

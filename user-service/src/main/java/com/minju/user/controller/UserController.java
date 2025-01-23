@@ -153,26 +153,25 @@ public class UserController {
     }
 
 
-
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserInfoDto> getUserInfo(@PathVariable Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        UserInfoDto userInfoDto = new UserInfoDto(user.getUsername(), user.getRole() == UserRoleEnum.ADMIN);
-        return ResponseEntity.ok(userInfoDto);
-    }
-
-
     // 4. 사용자 정보 조회
-    @GetMapping("/info")
-    public ResponseEntity<UserInfoDto> getUserInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        String username = userDetails.getUsername();
-        UserRoleEnum role = userDetails.getUser().getRole();
-        boolean isAdmin = (role == UserRoleEnum.ADMIN);
+//    @GetMapping("/info")
+//    public ResponseEntity<UserInfoDto> getUserInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+//        String username = userDetails.getUsername();
+//        UserRoleEnum role = userDetails.getUser().getRole();
+//        boolean isAdmin = (role == UserRoleEnum.ADMIN);
+//
+//        UserInfoDto userInfoDto = new UserInfoDto(username, isAdmin);
+//        return ResponseEntity.ok(userInfoDto);
+//    }
 
-        UserInfoDto userInfoDto = new UserInfoDto(username, isAdmin);
-        return ResponseEntity.ok(userInfoDto);
+    @GetMapping("/info")
+    public ResponseEntity<UserInfoDto> getUserInfo(@RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+        log.info("Fetching user info for userId: {}", userId);
+        UserInfoDto userInfo = userService.getUserInfo(userId);
+        return ResponseEntity.ok(userInfo);
     }
 
     // 5. 비밀번호 변경

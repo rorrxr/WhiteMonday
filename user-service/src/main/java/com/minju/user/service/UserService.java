@@ -1,6 +1,7 @@
 package com.minju.user.service;
 
 import com.minju.user.dto.SignupRequestDto;
+import com.minju.user.dto.UserInfoDto;
 import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
@@ -8,6 +9,7 @@ import com.minju.user.util.EncryptionUtil;
 import com.minju.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -75,7 +77,7 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        String accessToken = jwtUtil.createAccessToken(username, user.getRole().getAuthority());
+        String accessToken = jwtUtil.createAccessToken(user.getId(), username, user.getRole().getAuthority());
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("accessToken", accessToken);
@@ -99,16 +101,20 @@ public class UserService {
     }
 
     // Access Token 재발급
-    public String refreshAccessToken(String accessToken) {
-        if (!jwtUtil.validateToken(accessToken)) {
-            throw new IllegalArgumentException("액세스 토큰이 유효하지 않습니다.");
-        }
+//    public String refreshAccessToken(String accessToken) {
+//        if (!jwtUtil.validateToken(accessToken)) {
+//            throw new IllegalArgumentException("액세스 토큰이 유효하지 않습니다.");
+//        }
+//        String username = jwtUtil.extractClaims(accessToken).getSubject();
+//        userRepository.findByUsername(username)
+//                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+//
+//        return jwtUtil.createAccessToken(username, "ROLE_USER");
+//    }
 
-        String username = jwtUtil.extractClaims(accessToken).getSubject();
-
-        userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        return jwtUtil.createAccessToken(username, "ROLE_USER");
+    public UserInfoDto getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return new UserInfoDto(user.getUsername(), user.getRole().equals(UserRoleEnum.ADMIN));
     }
 }

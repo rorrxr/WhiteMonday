@@ -16,31 +16,31 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@RestController
-@RequestMapping("/api/auth")
-@RequiredArgsConstructor
-@Slf4j
-public class AuthenticationController {
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
-    private final UserService userService;
-
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshAccessToken(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith(JwtUtil.BEARER_PREFIX)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing Authorization header");
-        }
-
-        String refreshToken = authorizationHeader.substring(JwtUtil.BEARER_PREFIX.length());
-        log.info("Received refresh token: {}", refreshToken);
-
-        try {
-            String newAccessToken = userService.refreshAccessToken(refreshToken);
-            log.info("Generated new Access Token: {}", newAccessToken);
-            return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
-        } catch (IllegalArgumentException e) {
-            log.error("Error during token refresh: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        }
-    }
-}
+//@RestController
+//@RequestMapping("/api/auth")
+//@RequiredArgsConstructor
+//@Slf4j
+//public class AuthenticationController {
+//    private final JwtUtil jwtUtil;
+//    private final UserRepository userRepository;
+//    private final UserService userService;
+//
+//    @PostMapping("/refresh")
+//    public ResponseEntity<?> refreshAccessToken(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+//        if (authorizationHeader == null || !authorizationHeader.startsWith(JwtUtil.BEARER_PREFIX)) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing Authorization header");
+//        }
+//
+//        String refreshToken = authorizationHeader.substring(JwtUtil.BEARER_PREFIX.length());
+//        log.info("Received refresh token: {}", refreshToken);
+//
+//        try {
+//            String newAccessToken = userService.refreshAccessToken(refreshToken);
+//            log.info("Generated new Access Token: {}", newAccessToken);
+//            return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+//        } catch (IllegalArgumentException e) {
+//            log.error("Error during token refresh: {}", e.getMessage());
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+//        }
+//    }
+//}

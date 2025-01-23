@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHeaders;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -20,89 +19,87 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
 
-@Component
 @Slf4j
-public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
+@Component
+public class AuthorizationFilter extends AbstractGatewayFilterFactory<AuthorizationFilter.Config> {
 
     @Value("${jwt.secret-key}")
-    private String secret;
+    private String secretKey; // JWT Secret Key를 주입받음
 
+    private SecretKey key;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper; // ObjectMapper 주입
 
-    private SecretKey secretKey;
-
-    public JwtFilter(ObjectMapper objectMapper) {
+    public AuthorizationFilter(ObjectMapper objectMapper) { // 생성자에서 주입
         super(Config.class);
         this.objectMapper = objectMapper;
     }
 
     @PostConstruct
     public void init() {
-        if (secret == null || secret.isEmpty()) {
+        if (secretKey == null || secretKey.isEmpty()) {
             log.error("JWT_SECRET_KEY is not set!");
-        } else {
-            log.info("JWT_SECRET_KEY loaded successfully");
+            throw new IllegalArgumentException("JWT_SECRET_KEY is required");
         }
-        byte[] bytes = Base64.getDecoder().decode(secret);
-        secretKey = Keys.hmacShaKeyFor(bytes);  // Base64 디코딩하여 SecretKey 생성
-        log.debug("Initialized secret key: {}", secretKey);
+
+        try {
+            byte[] bytes = secretKey.getBytes(StandardCharsets.UTF_8);
+            key = Keys.hmacShaKeyFor(bytes); // SecretKey 생성
+            log.info("JWT_SECRET_KEY loaded and initialized successfully");
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid JWT_SECRET_KEY: {}", e.getMessage());
+            throw e;
+        }
     }
 
     @Override
     public GatewayFilter apply(Config config) {
-        log.debug("Using secret key: {}", secretKey);
-
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 log.debug("No Authorization header found, passing request to next filter.");
-                return chain.filter(exchange);  // Authorization 헤더가 없으면 바로 필터 체인 통과
+                return setResponse(response, "No authorization header");
             }
 
-            String accessToken = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-            if (!accessToken.startsWith("Bearer ")) {
-                log.error("Invalid token format: {}", accessToken);
+            String authorizationHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                log.error("Invalid token format: {}", authorizationHeader);
                 return setResponse(response, "Invalid token format.");
             }
 
-            accessToken = accessToken.substring(7); // Remove "Bearer " prefix
+            String token = authorizationHeader.substring(7); // "Bearer " 제거
+            log.debug("Received Token: {}", token); // 추가된 로그
 
-            // 토큰 검증
             try {
-                isExpired(accessToken);
+                isExpired(token);
             } catch (ExpiredJwtException e) {
-                log.error("Expired token: {}", accessToken);
+                log.error("Expired token: {}", token);
                 return setResponse(response, "Expired token.");
             } catch (MalformedJwtException | SignatureException e) {
-                log.error("Invalid token: {}", accessToken);
+                log.error("Invalid token: {}", token);
                 return setResponse(response, "Invalid token.");
             }
 
-            // 역할 확인
-            String role = getRole(accessToken);
-            log.debug("Parsed role: {}", role);
+//            String role = getRole(token);
+//            log.debug("Parsed Role: {}", role); // 추가된 로그
+//
+//            if (!hasRequiredRole(config.requiredRole, role)) {
+//                log.error("Insufficient role: required {}, but got {}", config.requiredRole, role);
+//                return setResponse(response, "Insufficient role.");
+//            }
 
-            if (!hasRequiredRole(config.requiredRole, role)) {
-                log.error("Insufficient role: required {}, but got {}", config.requiredRole, role);
-                return setResponse(response, "Insufficient role.");
-            }
+            String userId = String.valueOf(getUserId(token));
+            log.debug("Parsed User ID: {}", userId); // 추가된 로그
 
-            String userId = String.valueOf(getUserId(accessToken));
-            log.debug("Parsed userId: {}", userId);
-
-            // Add headers for userId and role
             ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Id", userId)
-                    .header("X-User-Role", role)
                     .build();
 
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
@@ -128,37 +125,40 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
         return requiredRole.equals(userRole) || ("USER".equals(requiredRole) && "ADMIN".equals(userRole));
     }
 
-    private String getUserId(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.get("userId", String.class);
+    private Long getUserId(String token) {
+        Claims claims = parseJwt(token);
+        log.debug("Parsed Claims: {}", claims);
+        Long userId = claims.get("userId", Long.class);
+        return userId;
     }
 
-    private String getRole(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("auth", String.class);
+//    private String getRole(String token) {
+//        Claims claims = parseJwt(token);
+//        log.debug("Parsed Claims: {}", claims); // 추가된 로그
+//        log.debug("Role (auth): {}", claims.get("auth", String.class)); // 추가된 로그
+//        return claims.get("auth", String.class);  // auth 필드 사용
+//    }
+
+    private void isExpired(String token) {
+        Claims claims = parseJwt(token);
+        log.debug("Expiration Date: {}", claims.getExpiration()); // 만료 시간 확인
+        if (claims.getExpiration().before(new Date())) {
+            throw new ExpiredJwtException(null, claims, "Token expired");
+        }
     }
 
-    private Boolean isExpired(String token) {
+    private Claims parseJwt(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey) // SecretKeySpec으로 생성된 secretKey 사용
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-
-            Date expirationDate = claims.getExpiration(); // 토큰 만료일 가져오기
-            return expirationDate.before(new Date()); // 만료 여부 확인
+            log.debug("Parsed Claims: {}", claims);
+            return claims;
         } catch (JwtException e) {
-            log.error("Error parsing token for expiration check: {}", e.getMessage());
-            throw new RuntimeException("Invalid token", e); // 필요한 경우 적절한 예외 처리
+            log.error("JWT parsing failed: {}", e.getMessage());
+            throw e;
         }
     }
 
@@ -173,8 +173,10 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
     private static class ResponseDto<T> {
         private String message;
         private T data;
+
         public ResponseDto(String message) {
             this.message = message;
         }
     }
 }
+
