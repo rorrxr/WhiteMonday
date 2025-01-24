@@ -28,13 +28,20 @@ public class PaymentController {
     }
 
     // 결제 API
+//    @PostMapping("/process")
+//    public ResponseEntity<String> processPayment(@RequestBody PaymentRequestDto paymentRequestDto) {
+//        boolean success = paymentService.processPayment(paymentRequestDto);
+//        if (success) {
+//            return ResponseEntity.ok("Payment succeeded.");
+//        } else {
+//            return ResponseEntity.ok("Payment failed.");
+//        }
+//    }
+    
+    // 결제 처리
     @PostMapping("/process")
-    public ResponseEntity<String> processPayment(@RequestBody PaymentRequestDto paymentRequestDto) {
-        boolean success = paymentService.processPayment(paymentRequestDto);
-        if (success) {
-            return ResponseEntity.ok("Payment succeeded.");
-        } else {
-            return ResponseEntity.ok("Payment failed.");
-        }
+    public ResponseEntity<String> processPayment(@RequestBody PaymentRequestDto requestDto) {
+        boolean isSuccess = paymentService.processPayment(requestDto);
+        return ResponseEntity.ok(isSuccess ? "결제 성공" : "결제 실패");
     }
 }
