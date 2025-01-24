@@ -30,6 +30,7 @@ dependencies {
 
 	// Spring Cloud
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client' // 서비스 등록 및 발견
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
 	// Database
 	implementation 'mysql:mysql-connector-java:8.0.33'

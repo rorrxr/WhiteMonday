@@ -36,7 +36,6 @@ spring:
             - Path=/product-service/**
           filters:
             - StripPrefix=1
-            - AuthorizationFilter # 필터 추가
 
         - id: wishlist-service
           uri: lb://wishlist-service
