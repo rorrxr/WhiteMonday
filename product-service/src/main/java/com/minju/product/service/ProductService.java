@@ -162,4 +162,59 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
         return product.getStock();
     }
+
+    // 실시간 정확한 재고 조회
+    public int getAccurateStock(Long productId) {
+        String redisKey = PRODUCT_KEY_PREFIX + productId;
+        Integer stock = redisTemplate.opsForValue().get(redisKey);
+
+        if (stock == null) {
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+            stock = product.getStock();
+            redisTemplate.opsForValue().set(redisKey, stock);
+        }
+        return stock;
+    }
+
+    // 재고 감소 (트랜잭션 처리)
+    @Transactional
+    public void decreaseStockWithTransaction(Long productId, int count) {
+        String redisKey = PRODUCT_KEY_PREFIX + productId;
+        RLock lock = redissonClient.getLock("lock:" + redisKey);
+
+        try {
+            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) {
+                Integer currentStock = redisTemplate.opsForValue().get(redisKey);
+                if (currentStock == null || currentStock < count) {
+                    throw new IllegalArgumentException("재고 부족");
+                }
+
+                // Redis와 DB 재고 동기화
+                redisTemplate.opsForValue().decrement(redisKey, count);
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                product.setStock(product.getStock() - count);
+                productRepository.save(product);
+            } else {
+                throw new IllegalStateException("동시 요청 과부하");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("재고 처리 중 오류", e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // 재고 복구
+    public void restoreStock(Long productId, int count) {
+        String redisKey = PRODUCT_KEY_PREFIX + productId;
+        redisTemplate.opsForValue().increment(redisKey, count);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        product.setStock(product.getStock() + count);
+        productRepository.save(product);
+    }
 }

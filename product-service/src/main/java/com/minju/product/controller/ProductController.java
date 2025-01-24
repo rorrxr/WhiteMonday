@@ -58,29 +58,29 @@ public class ProductController {
     }
 
     // 재고 감소
-    @PostMapping("/{id}/decrease-stock")
-    public ResponseEntity<Void> decreaseStock(
-            @PathVariable("id") Long productId,
-            @RequestParam("count") int count) {
-        productService.decreaseStock(productId, count);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-    // 재고 증가
-    @PostMapping("/{id}/increase-stock")
-    public ResponseEntity<Void> increaseStock(
-            @PathVariable("id") Long productId,
-            @RequestParam("count") int count) {
-        productService.increaseStock(productId, count);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-    // 상품 남은 수량 조회 (Redis)
-    @GetMapping("/{id}/remaining-stock")
-    public ResponseEntity<Integer> getRemainingStock(@PathVariable("id") Long productId) {
-        int remainingStock = productService.getStock(productId);
-        return ResponseEntity.ok(remainingStock);
-    }
+//    @PostMapping("/{id}/decrease-stock")
+//    public ResponseEntity<Void> decreaseStock(
+//            @PathVariable("id") Long productId,
+//            @RequestParam("count") int count) {
+//        productService.decreaseStock(productId, count);
+//        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+//    }
+//
+//    // 재고 증가
+//    @PostMapping("/{id}/increase-stock")
+//    public ResponseEntity<Void> increaseStock(
+//            @PathVariable("id") Long productId,
+//            @RequestParam("count") int count) {
+//        productService.increaseStock(productId, count);
+//        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+//    }
+//
+//    // 상품 남은 수량 조회 (Redis)
+//    @GetMapping("/{id}/remaining-stock")
+//    public ResponseEntity<Integer> getRemainingStock(@PathVariable("id") Long productId) {
+//        int remainingStock = productService.getStock(productId);
+//        return ResponseEntity.ok(remainingStock);
+//    }
 
     // 상품 남은 수량 조회 (직접 DB 조회)
 //    @GetMapping("/{id}/remaining-stock")
@@ -88,4 +88,25 @@ public class ProductController {
 //        int remainingStock = productService.getRemainingStock(productId);
 //        return ResponseEntity.ok(remainingStock);
 //    }
+
+    // 상품 남은 재고 조회
+    @GetMapping("/{id}/remaining-stock")
+    public ResponseEntity<Integer> getRemainingStock(@PathVariable Long id) {
+        int remainingStock = productService.getAccurateStock(id);
+        return ResponseEntity.ok(remainingStock);
+    }
+
+    // 재고 감소
+    @PostMapping("/{id}/decrease-stock")
+    public ResponseEntity<Void> decreaseStock(@PathVariable Long id, @RequestParam int count) {
+        productService.decreaseStockWithTransaction(id, count);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    // 재고 복구
+    @PostMapping("/{id}/restore-stock")
+    public ResponseEntity<Void> restoreStock(@PathVariable Long id, @RequestParam int count) {
+        productService.restoreStock(id, count);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }
