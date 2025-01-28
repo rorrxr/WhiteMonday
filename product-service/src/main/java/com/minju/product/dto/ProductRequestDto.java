@@ -16,5 +16,5 @@ public class ProductRequestDto {
     private int price;
     private int stock;
     private boolean isFlashSale;
-    private LocalTime flashSaleStartTime;
+    private String  flashSaleStartTime;
 }

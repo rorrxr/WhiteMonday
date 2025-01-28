@@ -27,23 +27,21 @@ public class Product {
     private String description;
     private int price;
     private int stock;
-    private boolean isFlashSale;
-    private LocalTime flashSaleStartTime;
+    private boolean flashSale;
+    private String  flashSaleStartTime;
 
     @CreationTimestamp
-    private LocalTime createdAt;
+    private String  createdAt;
 
     @UpdateTimestamp
-    private LocalTime updatedAt;
+    private String  updatedAt;
 
-    public Product(String title, String description, int price, int stock, boolean isFlashSale, LocalTime flashSaleStartTime) {
+    public Product(String title, String description, int price, int stock, boolean flashSale, String  flashSaleStartTime) {
         this.title = title;
         this.description = description;
         this.price = price;
         this.stock = stock;
-        this.isFlashSale = isFlashSale;
+        this.flashSale = flashSale;
         this.flashSaleStartTime = flashSaleStartTime;
     }
-
-
 }

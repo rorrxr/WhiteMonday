@@ -13,8 +13,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +74,7 @@ public class ProductService {
                 .toList();
     }
 
-    // 상품 상세 조회 (선착순 구매 상품 구분)
+    // 상품 상세 조회
     public ProductResponseDto getProductById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
@@ -101,9 +99,33 @@ public class ProductService {
 
     // 선착순 구매 상품의 구매 가능 시간 검증
     private boolean isFlashSaleAvailable(Product product) {
-        if (product.getFlashSaleStartTime() == null) return true; // 시간 제한이 없는 경우 구매 가능
+        if (product.getFlashSaleStartTime() == null || product.getFlashSaleStartTime().isEmpty()) {
+            return true; // 시간 제한이 없는 경우 구매 가능
+        }
+
         LocalTime now = LocalTime.now();
-        return now.isAfter(product.getFlashSaleStartTime());
+        LocalTime flashSaleStartTime = LocalTime.parse(product.getFlashSaleStartTime()); // String → LocalTime 변환
+
+        return now.isAfter(flashSaleStartTime);
+    }
+
+    // 스케줄링 작업: 선착순 상품 만료 처리 (5분마다 실행)
+    @Scheduled(fixedRate = 300000) // 5분마다 실행
+    @Transactional
+    public void processFlashSaleTimeouts() {
+        log.info("스케줄링 작업 시작: 선착순 상품 및 만료 처리");
+
+        List<Product> flashSaleProducts = productRepository.findByFlashSaleTrue();
+
+        for (Product product : flashSaleProducts) {
+            if (!isFlashSaleAvailable(product)) {
+                log.info("선착순 상품 만료 처리: {}", product.getTitle());
+                product.setFlashSale(false); // 만료된 상품 처리
+                productRepository.save(product);
+            }
+        }
+
+        log.info("스케줄링 작업 완료");
     }
 
     // Redis에서 정확한 실시간 재고 조회
@@ -112,13 +134,17 @@ public class ProductService {
         Integer stock = redisTemplate.opsForValue().get(redisKey);
 
         if (stock == null) {
-            // Redis에 재고가 없으면 DB에서 조회 후 Redis에 캐싱
             Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                    .orElse(null); // ➜ null을 반환하여 예외 방지
+
+            if (product == null) {
+                log.error("상품 ID {}가 존재하지 않음", productId);
+                return -1; // 상품 없음
+            }
+
             stock = product.getStock();
             redisTemplate.opsForValue().set(redisKey, stock);
         }
-
         return stock;
     }
 
@@ -154,7 +180,7 @@ public class ProductService {
         }
     }
 
-    // 재고 복구
+    // 재고 복구 (트랜잭션 처리)
     @Transactional
     public void restoreStock(Long productId, int count) {
         String redisKey = PRODUCT_KEY_PREFIX + productId;
@@ -179,27 +205,6 @@ public class ProductService {
         } finally {
             lock.unlock();
         }
-    }
-
-    // 스케줄링 작업: 재고 복구 및 만료 처리
-    @Scheduled(fixedRate = 300000) // 5분마다 실행
-    @Transactional
-    public void processFlashSaleTimeouts() {
-        log.info("스케줄링 작업 시작: 선착순 상품 및 만료 주문 처리");
-
-        List<Product> flashSaleProducts = productRepository.findByFlashSaleTrue();
-
-        for (Product product : flashSaleProducts) {
-            if (isFlashSaleAvailable(product)) {
-                log.info("선착순 상품 구매 가능: {}", product.getTitle());
-            } else {
-                log.info("선착순 상품 만료 처리: {}", product.getTitle());
-                product.setFlashSale(false); // 만료된 상품 처리
-                productRepository.save(product);
-            }
-        }
-
-        log.info("스케줄링 작업 완료");
     }
 
     // Redis에서 재고 조회
