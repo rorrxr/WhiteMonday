@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Data
 @NoArgsConstructor
@@ -15,5 +16,5 @@ public class ProductRequestDto {
     private int price;
     private int stock;
     private boolean isFlashSale;
-    private LocalDateTime flashSaleStartTime;
+    private LocalTime flashSaleStartTime;
 }

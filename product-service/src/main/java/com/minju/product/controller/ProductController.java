@@ -27,6 +27,21 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+
+    // 상품 상세 조회 (선착순 구매 상품 구분)
+    @GetMapping("/{productId}")
+    public ResponseEntity<ProductResponseDto> getProductById(@PathVariable Long productId) {
+        ProductResponseDto product = productService.getProductById(productId);
+        return ResponseEntity.ok(product);
+    }
+
+    // 스케줄링 테스트 API
+    @GetMapping("/scheduled")
+    public ResponseEntity<String> triggerScheduledTask() {
+        productService.processFlashSaleTimeouts();
+        return ResponseEntity.ok("스케줄링 작업이 수동으로 실행되었습니다.");
+    }
+
     // 상품 상세 조회하기
 //    @GetMapping("/{id}")
 //    public ResponseEntity<ProductResponseDto> getProductById(@PathVariable Long id) {
@@ -39,22 +54,6 @@ public class ProductController {
     public ResponseEntity<ProductResponseDto> addProduct(@RequestBody ProductRequestDto requestDto) {
         ProductResponseDto savedProduct = productService.addProduct(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
-    }
-
-    @GetMapping("/{productId}")
-    public ResponseEntity<ProductDto> getProductById(@PathVariable Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-
-        ProductDto productDto = new ProductDto();
-        productDto.setProductId(product.getId());
-        productDto.setTitle(product.getTitle());
-        productDto.setDescription(product.getDescription());
-        productDto.setPrice(product.getPrice());
-        productDto.setStock(product.getStock());
-        productDto.setFlashSale(productDto.isFlashSale());
-
-        return ResponseEntity.ok(productDto);
     }
 
     // 재고 감소

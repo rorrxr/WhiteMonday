@@ -5,18 +5,23 @@ import com.minju.product.dto.ProductResponseDto;
 import com.minju.product.entity.Product;
 import com.minju.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -71,10 +76,15 @@ public class ProductService {
                 .toList();
     }
 
-    // 상품 상세 조회
+    // 상품 상세 조회 (선착순 구매 상품 구분)
     public ProductResponseDto getProductById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        // 선착순 구매 상품일 경우 구매 가능 시간 검증
+        if (product.isFlashSale() && !isFlashSaleAvailable(product)) {
+            throw new IllegalArgumentException("현재 해당 상품은 구매할 수 없습니다. 구매 가능 시간: " + product.getFlashSaleStartTime());
+        }
 
         return new ProductResponseDto(
                 product.getId(),
@@ -89,29 +99,52 @@ public class ProductService {
         );
     }
 
-    // 재고 감소
+    // 선착순 구매 상품의 구매 가능 시간 검증
+    private boolean isFlashSaleAvailable(Product product) {
+        if (product.getFlashSaleStartTime() == null) return true; // 시간 제한이 없는 경우 구매 가능
+        LocalTime now = LocalTime.now();
+        return now.isAfter(product.getFlashSaleStartTime());
+    }
+
+    // Redis에서 정확한 실시간 재고 조회
+    public int getAccurateStock(Long productId) {
+        String redisKey = PRODUCT_KEY_PREFIX + productId;
+        Integer stock = redisTemplate.opsForValue().get(redisKey);
+
+        if (stock == null) {
+            // Redis에 재고가 없으면 DB에서 조회 후 Redis에 캐싱
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+            stock = product.getStock();
+            redisTemplate.opsForValue().set(redisKey, stock);
+        }
+
+        return stock;
+    }
+
+    // 재고 감소 (트랜잭션 처리)
     @Transactional
-    public void decreaseStock(Long productId, int count) {
+    public void decreaseStockWithTransaction(Long productId, int count) {
         String redisKey = PRODUCT_KEY_PREFIX + productId;
         RLock lock = redissonClient.getLock("lock:" + redisKey);
 
         try {
-            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) {
-                Integer currentStock = getStock(productId);
-
-                if (currentStock < count) {
+            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) { // 10초 대기, 5초 락 유지
+                Integer currentStock = redisTemplate.opsForValue().get(redisKey);
+                if (currentStock == null || currentStock < count) {
                     throw new IllegalArgumentException("재고가 부족합니다.");
                 }
 
-                // Redis와 DB에서 재고 감소
-                redisTemplate.opsForValue().set(redisKey, currentStock - count);
+                // Redis 재고 감소
+                redisTemplate.opsForValue().decrement(redisKey, count);
 
+                // DB 재고 동기화
                 Product product = productRepository.findById(productId)
                         .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
                 product.setStock(product.getStock() - count);
                 productRepository.save(product);
             } else {
-                throw new IllegalStateException("동시에 너무 많은 요청이 처리 중입니다. 잠시 후 다시 시도하세요.");
+                throw new IllegalStateException("동시 요청 과부하로 인해 처리할 수 없습니다.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -121,26 +154,52 @@ public class ProductService {
         }
     }
 
-    // 재고 증가
-    public void increaseStock(Long productId, int count) {
+    // 재고 복구
+    @Transactional
+    public void restoreStock(Long productId, int count) {
         String redisKey = PRODUCT_KEY_PREFIX + productId;
+        RLock lock = redissonClient.getLock("lock:" + redisKey);
 
-        // Redis에서 현재 재고 조회
-        Integer currentStock = getStock(productId);
+        try {
+            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) { // 10초 대기, 5초 락 유지
+                // Redis 재고 증가
+                redisTemplate.opsForValue().increment(redisKey, count);
 
-        // Redis에서 재고 증가
-        redisTemplate.opsForValue().set(redisKey, currentStock + count);
-
-        // 데이터베이스에도 반영
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-        product.setStock(product.getStock() + count);
-        productRepository.save(product);
+                // DB 재고 동기화
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                product.setStock(product.getStock() + count);
+                productRepository.save(product);
+            } else {
+                throw new IllegalStateException("동시 요청 과부하로 인해 처리할 수 없습니다.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("재고 복구 중 오류가 발생했습니다.", e);
+        } finally {
+            lock.unlock();
+        }
     }
 
-    private void cacheStock(Long productId, int stock) {
-        String redisKey = PRODUCT_KEY_PREFIX + productId;
-        redisTemplate.opsForValue().set(redisKey, stock, Duration.ofMinutes(10));
+    // 스케줄링 작업: 재고 복구 및 만료 처리
+    @Scheduled(fixedRate = 300000) // 5분마다 실행
+    @Transactional
+    public void processFlashSaleTimeouts() {
+        log.info("스케줄링 작업 시작: 선착순 상품 및 만료 주문 처리");
+
+        List<Product> flashSaleProducts = productRepository.findByFlashSaleTrue();
+
+        for (Product product : flashSaleProducts) {
+            if (isFlashSaleAvailable(product)) {
+                log.info("선착순 상품 구매 가능: {}", product.getTitle());
+            } else {
+                log.info("선착순 상품 만료 처리: {}", product.getTitle());
+                product.setFlashSale(false); // 만료된 상품 처리
+                productRepository.save(product);
+            }
+        }
+
+        log.info("스케줄링 작업 완료");
     }
 
     // Redis에서 재고 조회
@@ -152,69 +211,8 @@ public class ProductService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
             stock = product.getStock();
-            cacheStock(productId, stock); // 캐싱 초기화
+            redisTemplate.opsForValue().set(redisKey, stock); // Redis 캐싱
         }
         return stock;
-    }
-
-    public int getRemainingStock(Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-        return product.getStock();
-    }
-
-    // 실시간 정확한 재고 조회
-    public int getAccurateStock(Long productId) {
-        String redisKey = PRODUCT_KEY_PREFIX + productId;
-        Integer stock = redisTemplate.opsForValue().get(redisKey);
-
-        if (stock == null) {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-            stock = product.getStock();
-            redisTemplate.opsForValue().set(redisKey, stock);
-        }
-        return stock;
-    }
-
-    // 재고 감소 (트랜잭션 처리)
-    @Transactional
-    public void decreaseStockWithTransaction(Long productId, int count) {
-        String redisKey = PRODUCT_KEY_PREFIX + productId;
-        RLock lock = redissonClient.getLock("lock:" + redisKey);
-
-        try {
-            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) {
-                Integer currentStock = redisTemplate.opsForValue().get(redisKey);
-                if (currentStock == null || currentStock < count) {
-                    throw new IllegalArgumentException("재고 부족");
-                }
-
-                // Redis와 DB 재고 동기화
-                redisTemplate.opsForValue().decrement(redisKey, count);
-                Product product = productRepository.findById(productId)
-                        .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-                product.setStock(product.getStock() - count);
-                productRepository.save(product);
-            } else {
-                throw new IllegalStateException("동시 요청 과부하");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("재고 처리 중 오류", e);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    // 재고 복구
-    public void restoreStock(Long productId, int count) {
-        String redisKey = PRODUCT_KEY_PREFIX + productId;
-        redisTemplate.opsForValue().increment(redisKey, count);
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-        product.setStock(product.getStock() + count);
-        productRepository.save(product);
     }
 }

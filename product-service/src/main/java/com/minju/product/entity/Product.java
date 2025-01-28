@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 
 @Entity
@@ -27,15 +28,15 @@ public class Product {
     private int price;
     private int stock;
     private boolean isFlashSale;
-    private LocalDateTime flashSaleStartTime;
+    private LocalTime flashSaleStartTime;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    private LocalTime createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private LocalTime updatedAt;
 
-    public Product(String title, String description, int price, int stock, boolean isFlashSale, LocalDateTime flashSaleStartTime) {
+    public Product(String title, String description, int price, int stock, boolean isFlashSale, LocalTime flashSaleStartTime) {
         this.title = title;
         this.description = description;
         this.price = price;
