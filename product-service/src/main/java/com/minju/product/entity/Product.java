@@ -8,9 +8,6 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-
 
 @Entity
 @Getter
@@ -36,7 +33,8 @@ public class Product {
     @UpdateTimestamp
     private String  updatedAt;
 
-    public Product(String title, String description, int price, int stock, boolean flashSale, String  flashSaleStartTime) {
+    public Product(Long id, String title, String description, int price, int stock, boolean flashSale, String  flashSaleStartTime) {
+        this.id = id;
         this.title = title;
         this.description = description;
         this.price = price;

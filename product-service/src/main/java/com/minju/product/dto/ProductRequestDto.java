@@ -11,6 +11,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductRequestDto {
+    private Long id;
     private String title;
     private String description;
     private int price;
