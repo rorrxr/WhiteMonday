@@ -7,6 +7,7 @@ import com.minju.order.dto.OrderResponseDto;
 import com.minju.order.entity.Orders;
 import com.minju.order.entity.OrderItem;
 import com.minju.order.repository.OrderRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
 
+    private static final String PRODUCT_CB = "productService";
     private final ProductServiceClient productServiceClient;
     private final OrderRepository orderRepository;
 
     @Transactional
+    @CircuitBreaker(name = PRODUCT_CB, fallbackMethod = "createOrderFallback")
     public OrderResponseDto createOrder(Long userId, OrderRequestDto requestDto) {
         log.info("createOrder - userId: {}, requestDto: {}", userId, requestDto);
 
@@ -143,5 +146,10 @@ public class OrderService {
         orderItem.setQuantity(item.getQuantity());
         orderItem.setPrice(product.getPrice() * item.getQuantity());
         return orderItem;
+    }
+
+    public OrderResponseDto createOrderFallback(Long userId, OrderRequestDto requestDto, Throwable t) {
+        log.error("ProductService unavailable. Fallback activated. Error: {}", t.toString());
+        throw new IllegalStateException("상품 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.");
     }
 }

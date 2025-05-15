@@ -4,6 +4,7 @@ import com.minju.paymentservice.client.ProductServiceFeignClient;
 import com.minju.paymentservice.dto.PaymentRequestDto;
 import com.minju.paymentservice.entity.Payment;
 import com.minju.paymentservice.repository.PaymentRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final ProductServiceFeignClient productServiceFeignClient;
+    private static final String PRODUCT_CB = "productService";
 
     // 결제 처리 로직
 //    @Transactional
@@ -46,6 +48,7 @@ public class PaymentService {
     }
 
     // 결제 처리 로직
+    @CircuitBreaker(name = PRODUCT_CB, fallbackMethod = "restoreStockFallback")
     public boolean processPayment(PaymentRequestDto requestDto) {
         try {
             // 20% 실패 시뮬레이션
@@ -65,5 +68,11 @@ public class PaymentService {
             log.error("Error occurred during payment processing: ", e);
             throw new RuntimeException("결제 처리 중 오류 발생", e);
         }
+    }
+
+    public boolean restoreStockFallback(PaymentRequestDto requestDto, Throwable t) {
+        log.error("재고 복구 실패 (fallback). Error: {}", t.getMessage());
+        // 재고 복구 실패시 DB에 실패 기록 남기거나 알림을 전송할 수도 있음
+        return false; // 결제 실패 처리 유지
     }
 }
