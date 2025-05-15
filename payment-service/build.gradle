@@ -27,6 +27,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-validation' // 유효성 검증 의존성
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
 
 	// Spring Cloud
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client' // 서비스 등록 및 발견
