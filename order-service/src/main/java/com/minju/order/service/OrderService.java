@@ -1,11 +1,13 @@
 package com.minju.order.service;
 
+import com.minju.common.dto.OrderCreatedEvent;
 import com.minju.common.dto.ProductDto;
 import com.minju.order.client.ProductServiceClient;
 import com.minju.order.dto.OrderRequestDto;
 import com.minju.order.dto.OrderResponseDto;
 import com.minju.order.entity.Orders;
 import com.minju.order.entity.OrderItem;
+import com.minju.order.kafka.OrderEventProducer;
 import com.minju.order.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class OrderService {
     private static final String PRODUCT_CB = "productService";
     private final ProductServiceClient productServiceClient;
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
 
     @Transactional
     @CircuitBreaker(name = PRODUCT_CB, fallbackMethod = "createOrderFallback")
@@ -38,6 +41,7 @@ public class OrderService {
         orderRepository.save(order);
 
         int totalAmount = 0;
+        OrderRequestDto.Item firstItem = null;
 
         // 각 상품에 대해 재고 확인 및 주문 항목 생성
         for (OrderRequestDto.Item item : requestDto.getItems()) {
@@ -58,6 +62,10 @@ public class OrderService {
             totalAmount += orderItem.getPrice();
 
             order.getOrderItems().add(orderItem);
+
+            if (firstItem == null) {
+                firstItem = item;
+            }
         }
 
         // 총 금액 업데이트
@@ -65,6 +73,21 @@ public class OrderService {
         orderRepository.save(order);
 
         log.info("Order created successfully - orderId: {}", order.getId());
+
+        // Kafka 이벤트 발행
+        if (firstItem != null) {
+            OrderCreatedEvent event = OrderCreatedEvent.builder()
+                    .orderId(String.valueOf(order.getId()))
+                    .userId(String.valueOf(userId))
+                    .productId(String.valueOf(firstItem.getProductId()))
+                    .quantity(firstItem.getQuantity())
+                    .amount(order.getTotalAmount())
+                    .build();
+
+
+            orderEventProducer.send(event);
+        }
+
         return new OrderResponseDto(order);
     }
 
