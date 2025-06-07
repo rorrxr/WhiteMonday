@@ -55,6 +55,9 @@ dependencies {
 	// Common
 	implementation project(':common')
 
+	// 테스트 코드에서도 lombok 사용 가능하게 설정
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
 	// Test dependencies
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

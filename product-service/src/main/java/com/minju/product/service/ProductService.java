@@ -192,7 +192,7 @@ public class ProductService {
                 if (currentStock == null || currentStock < count) {
                     throw new IllegalArgumentException("재고가 부족합니다.");
                 }
-                redisTemplate.opsForValue().decrement(PRODUCT_KEY_PREFIX + productId, (long) count);
+                redisTemplate.opsForValue().decrement(PRODUCT_KEY_PREFIX + productId, count);
 
                 // 데이터베이스 업데이트
                 Product product = productRepository.findById(productId)

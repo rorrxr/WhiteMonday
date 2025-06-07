@@ -1,6 +1,6 @@
 package com.minju.order.service;
 
-import com.minju.common.dto.OrderCreatedEvent;
+import com.minju.order.dto.OrderCreatedEvent;
 import com.minju.common.dto.ProductDto;
 import com.minju.order.client.ProductServiceClient;
 import com.minju.order.dto.OrderRequestDto;

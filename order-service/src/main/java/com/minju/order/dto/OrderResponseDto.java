@@ -11,12 +11,12 @@ import java.util.stream.Collectors;
 
 @Getter
 public class OrderResponseDto {
-    private Long orderId;
-    private String orderStatus;
-    private int totalAmount;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private List<OrderItemDto> items;
+    private final Long orderId;
+    private final String orderStatus;
+    private final int totalAmount;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
+    private final List<OrderItemDto> items;
 
     public OrderResponseDto(Orders order) {
         this.orderId = order.getId(); // 엔티티에서 getId() 메서드를 호출
@@ -32,9 +32,9 @@ public class OrderResponseDto {
 
     @Getter
     public static class OrderItemDto {
-        private Long productId;
-        private int quantity;
-        private int price;
+        private final Long productId;
+        private final int quantity;
+        private final int price;
 
         public OrderItemDto(OrderItem orderItem) {
             this.productId = orderItem.getProductId(); // OrderItem에서 productId 직접 참조
