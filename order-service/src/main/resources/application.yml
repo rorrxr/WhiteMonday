@@ -31,18 +31,104 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      productService:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-
 kafka:
   bootstrap-servers: localhost:9092
   producer:
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Circuit Breaker 설정
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        register-health-indicator: true
+        sliding-window-size: 12
+        sliding-window-type: COUNT_BASED
+        failure-rate-threshold: 60
+        minimum-number-of-calls: 3
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - java.lang.Exception
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+          - java.lang.RuntimeException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - java.lang.IllegalStateException
+
+  retry:
+    instances:
+      productService:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+
+  ratelimiter:
+    instances:
+      productService:
+        limit-for-period: 50
+        limit-refresh-period: 1s
+        timeout-duration: 1s
+
+# Feign Client 설정
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 15000
+        logger-level: basic
+      product-service:
+        connect-timeout: 3000
+        read-timeout: 10000
+
+# Actuator 및 모니터링 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    circuitbreakers:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        descriptions: true
+        step: 10s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
+    tags:
+      service: order-service
+      environment: ${spring.profiles.active}
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET_KEY}
+
+# 로깅 설정
+logging:
+  level:
+    org.springframework.cloud: DEBUG
+    io.github.resilience4j: DEBUG
+    com.minju.order: INFO
+    feign: DEBUG

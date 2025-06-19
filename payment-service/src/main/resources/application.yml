@@ -32,16 +32,93 @@ eureka:
     disable-delta: true
     service-url:
       defaultZone: http://localhost:8761/eureka
-logging:
-  level:
-    org.springframework.cloud: DEBUG
 
+# Circuit Breaker 설정
 resilience4j:
   circuitbreaker:
     instances:
       productService:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
+        register-health-indicator: true
+        sliding-window-size: 15
+        sliding-window-type: COUNT_BASED
+        failure-rate-threshold: 40
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 20s
+        permitted-number-of-calls-in-half-open-state: 5
+        record-exceptions:
+          - java.lang.Exception
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+  retry:
+    instances:
+      productService:
+        max-attempts: 3
+        wait-duration: 2s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+
+  ratelimiter:
+    instances:
+      productService:
+        limit-for-period: 30
+        limit-refresh-period: 1s
+        timeout-duration: 500ms
+
+# Feign Client 설정
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 8000
+        read-timeout: 20000
+        logger-level: basic
+      product-service:
+        connect-timeout: 5000
+        read-timeout: 15000
+
+# Actuator 및 모니터링 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    circuitbreakers:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        descriptions: true
+        step: 10s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
+    tags:
+      service: payment-service
+      environment: ${spring.profiles.active}
+
+# 로깅 설정
+logging:
+  level:
+    org.springframework.cloud: DEBUG
+    io.github.resilience4j: DEBUG
+    com.minju.paymentservice: INFO
+    feign: DEBUG

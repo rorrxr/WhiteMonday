@@ -159,10 +159,53 @@ services:
       - "8085:8085"
     networks:
       - commerce-network
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: whitemonday-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/rules.yml:/etc/prometheus/rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--rule.file=/etc/prometheus/rules.yml'
+    networks:
+      - whitemonday-network
+    depends_on:
+      - product-service
+      - order-service
+      - payment-service
+
+  # Grafana (대시보드)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: whitemonday-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    networks:
+      - whitemonday-network
+    depends_on:
+      - prometheus
 volumes:
   mysql-data:
   redis-data:
-
+  prometheus_data:
+  grafana_data:
 
 networks:
   commerce-network:

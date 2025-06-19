@@ -55,6 +55,10 @@ dependencies {
 	// Common
 	implementation project(':common')
 
+	// 프로메테우스
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	// 테스트 코드에서도 lombok 사용 가능하게 설정
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
