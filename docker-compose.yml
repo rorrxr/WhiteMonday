@@ -12,7 +12,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -74,6 +74,17 @@ services:
     networks:
       - commerce-network
 
+  common:
+    build:
+      context: ./                  # 프로젝트 루트
+      dockerfile: ./common/Dockerfile
+    image: common:latest
+    container_name: common
+    ports:
+      - "8070:8070"
+    networks:
+      - commerce-network
+
   user-service:
     image: user-service:latest
     container_name: user-service
@@ -124,8 +135,6 @@ services:
     networks:
       - commerce-network
   wishlist-service:
-    build:
-      context: ./wishlist-service  # Dockerfile이 있는 디렉토리로 경로 설정
     image: wishlist-service:latest
     container_name: wishlist-service
     depends_on:
@@ -143,8 +152,6 @@ services:
     networks:
       - commerce-network
   payment-service:
-    build:
-      context: ./payment-service  # Dockerfile이 있는 디렉토리로 경로 설정
     image: payment-service:latest
     container_name: payment-service
     depends_on:
@@ -166,7 +173,6 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/rules.yml:/etc/prometheus/rules.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -175,9 +181,8 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
-      - '--rule.file=/etc/prometheus/rules.yml'
     networks:
-      - whitemonday-network
+      - commerce-network
     depends_on:
       - product-service
       - order-service
@@ -198,7 +203,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     networks:
-      - whitemonday-network
+      - commerce-network
     depends_on:
       - prometheus
 volumes:
