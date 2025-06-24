@@ -1,3 +1,6 @@
 spring:
   application:
     name: common
+
+server:
+  port: 8070
