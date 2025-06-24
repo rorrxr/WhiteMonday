@@ -54,3 +54,31 @@ jwt:
 
 encryption:
   secret-key: ${ENCRYPTION_SECRET_KEY}
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.mail.MailException
+          - java.net.ConnectException
+          - java.io.IOException
+    instances:
+      email-service:
+        base-config: default
+        max-attempts: 5
+        wait-duration: 2s
+        exponential-backoff-multiplier: 1.5
+      database-operation:
+        base-config: default
+        max-attempts: 3
+        wait-duration: 500ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,retries,metrics

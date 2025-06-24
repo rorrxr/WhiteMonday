@@ -5,23 +5,8 @@ import com.minju.user.dto.UserInfoDto;
 import com.minju.user.dto.UserRoleEnum;
 import com.minju.user.entity.User;
 import com.minju.user.repository.UserRepository;
-import com.minju.user.util.EncryptionUtil;
 import com.minju.user.util.JwtUtil;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-
-import com.minju.user.dto.UserRoleEnum;
-import com.minju.user.entity.User;
-import com.minju.user.repository.UserRepository;
-import com.minju.user.util.JwtUtil;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +24,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final LogoutService logoutService;
 
-    // 회원가입
-    public void signup(SignupRequestDto requestDto) {
+    @Retry(name = "database-operation", fallbackMethod = "registerUserFallback")
+    public User signup(SignupRequestDto requestDto) {
         log.info("Starting signup for user: {}", requestDto.getUsername());
 
         // 중복 확인
@@ -54,16 +38,28 @@ public class UserService {
         }
 
         // 사용자 저장
-        User user = User.builder()
-                .username(requestDto.getUsername())
-                .password(passwordEncoder.encode(requestDto.getPassword()))
-                .email(requestDto.getEmail())
-                .role(UserRoleEnum.USER)
-                .isEnabled(true)
-                .build();
+//        User user = User.builder()
+//                .username(requestDto.getUsername())
+//                .password(passwordEncoder.encode(requestDto.getPassword()))
+//                .name(encryptionUtil.encrypt(requestDto.getName()))
+//                .build();
 
-        userRepository.save(user);
+        User user = User.builder()
+        .username(requestDto.getUsername())
+        .password(passwordEncoder.encode(requestDto.getPassword()))
+        .email(requestDto.getEmail())
+        .role(UserRoleEnum.USER)
+        .isEnabled(true)
+        .build();
+
+//        User savedUser = userRepository.save(user);
+        // 이메일 발송
+//        emailService.sendVerificationEmail(savedUser.getEmail());
+        //return UserInfoDto.from(savedUser);
+
         log.info("User signup successful for: {}", requestDto.getUsername());
+
+        return userRepository.save(user);
     }
 
     // 로그인
@@ -117,4 +113,10 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return new UserInfoDto(user.getUsername(), user.getRole().equals(UserRoleEnum.ADMIN));
     }
+
+    // fallback 함수 추가
+//    public UserInfoDto registerUserFallback(SignupRequestDto request, Exception ex) {
+//        log.error("사용자 등록 실패: {}", ex.getMessage());
+//        throw new UserRegistrationException("사용자 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+//    }
 }
