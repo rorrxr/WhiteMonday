@@ -1,5 +1,6 @@
 package com.minju.paymentservice.service;
 
+import com.minju.common.kafka.OrderCreatedEvent;
 import com.minju.paymentservice.client.ProductServiceFeignClient;
 import com.minju.paymentservice.dto.PaymentRequestDto;
 import com.minju.paymentservice.entity.Payment;
@@ -7,9 +8,11 @@ import com.minju.paymentservice.repository.PaymentRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
@@ -22,29 +25,28 @@ public class PaymentService {
     private final ProductServiceFeignClient productServiceFeignClient;
     private static final String PRODUCT_CB = "productService";
 
-    // 결제 처리 로직
-//    @Transactional
-//    public boolean processPayment(PaymentRequestDto paymentRequestDto) {
-//        // 20% 확률로 결제 실패 시뮬레이션
-//        boolean isSuccess = new Random().nextInt(100) >= 20;
-//
-//        // Payment 객체 생성 및 저장
-//        Payment payment = new Payment();
-//        payment.setPaymentStatus(isSuccess ? "성공" : "실패");
-//        payment.setPaymentDate(paymentRequestDto.getPaymentDate());
-//        payment.setPaymentMethod(paymentRequestDto.getPaymentMethod());
-//
-//        paymentRepository.save(payment);
-//
-//        // 결과 로깅
-//        log.info("Payment {} with ID: {}", isSuccess ? "succeeded" : "failed", payment.getId());
-//
-//        return isSuccess;
-//    }
-
     // 결제 진입 검증 로직
     public boolean validatePaymentEntry(PaymentRequestDto paymentRequestDto) {
         return "결제 진행 중".equals(paymentRequestDto.getPaymentStatus());
+    }
+
+
+    @KafkaListener(topics = "order-created-topic", groupId = "payment-group")
+    public void handleOrderCreated(OrderCreatedEvent event) {
+        log.info("Kafka - 주문 생성 이벤트 수신: {}", event);
+
+        Payment payment = new Payment();
+        payment.setOrderId((int) Long.parseLong(String.valueOf(event.getOrderId())));
+        payment.setPaymentDate(LocalDateTime.now());
+        payment.setPaymentMethod("신용카드"); // 예시
+
+        boolean isSuccess = new Random().nextInt(100) >= 20;
+        payment.setPaymentStatus(isSuccess ? "성공" : "실패");
+
+        paymentRepository.save(payment);
+        log.info("결제 {} - 주문 ID: {}", isSuccess ? "성공" : "실패", event.getOrderId());
+
+        // Kafka를 통해 재고 차감 메시지 추가
     }
 
     // 결제 처리 로직

@@ -31,4 +31,6 @@ public class Payment {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private int orderId;
 }
