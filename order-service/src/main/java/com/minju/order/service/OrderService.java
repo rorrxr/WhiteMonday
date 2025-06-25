@@ -12,6 +12,9 @@ import com.minju.order.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ public class OrderService {
     private final ProductServiceClient productServiceClient;
     private final OrderRepository orderRepository;
     private final OrderEventProducer orderEventProducer;
+    private final KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
 
     @Transactional
     @CircuitBreaker(name = PRODUCT_CB, fallbackMethod = "createOrderFallback")
@@ -171,8 +175,19 @@ public class OrderService {
         return orderItem;
     }
 
-    public OrderResponseDto createOrderFallback(Long userId, OrderRequestDto requestDto, Throwable t) {
-        log.error("ProductService unavailable. Fallback activated. Error: {}", t.toString());
-        throw new IllegalStateException("상품 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.");
-    }
+//    public OrderResponseDto createOrderFallback(Long userId, OrderRequestDto requestDto, Throwable t) {
+//        log.error("ProductService unavailable. Fallback activated. Error: {}", t.toString());
+//        throw new IllegalStateException("상품 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.");
+//    }
+
+//    public OrderRequestDto createOrderFallback(OrderRequestDto request, Throwable t) {
+//        log.warn("Order fallback triggered due to: {}", t.getMessage());
+//        return new OrderResponseDto("상품 정보를 가져오는 데 실패했습니다. 나중에 다시 시도해주세요.");
+//    }
+
+//    public ResponseEntity<OrderRequestDto> createOrderFallback(OrderRequestDto request, Throwable t) {
+//        log.error("Fallback due to: {}", t.getMessage(), t);
+//        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+//                .body(new OrderRequestDto(null, "상품 정보를 일시적으로 불러올 수 없습니다."));
+//    }
 }
