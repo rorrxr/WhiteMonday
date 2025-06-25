@@ -17,9 +17,8 @@ spring:
       port: 6379
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     database: mysql
-    database-platform: org.hibernate.dialect.MySQLDialect
   main:
     web-application-type: servlet
     log-startup-info: true
@@ -41,3 +40,36 @@ logging:
     org.springframework.cloud: DEBUG
 jwt:
   secret: ${JWT_SECRET_KEY}
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.dao.DataAccessException
+          - org.springframework.data.redis.RedisConnectionFailureException
+          - java.net.ConnectException
+          - java.io.IOException
+    instances:
+      redis-operation:
+        base-config: default
+        max-attempts: 5
+        wait-duration: 200ms
+        exponential-backoff-multiplier: 1.5
+      database-operation:
+        base-config: default
+        max-attempts: 3
+        wait-duration: 1s
+      stock-operation:
+        base-config: default
+        max-attempts: 4
+        wait-duration: 300ms
+
+  circuitbreaker:
+    instances:
+      redis-operation:
+        failure-rate-threshold: 60
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 10s

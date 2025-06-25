@@ -121,6 +121,8 @@ management:
       service: order-service
       environment: ${spring.profiles.active}
 
+
+
 # JWT 설정
 jwt:
   secret: ${JWT_SECRET_KEY}
