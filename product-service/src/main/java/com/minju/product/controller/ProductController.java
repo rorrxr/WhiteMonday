@@ -1,8 +1,11 @@
 package com.minju.product.controller;
 
+import com.minju.common.dto.StockResponse;
+import com.minju.product.dto.DecreaseStockRequest;
 import com.minju.product.dto.ProductRequestDto;
 import com.minju.product.dto.ProductResponseDto;
 import com.minju.product.service.ProductService;
+import com.minju.product.service.StockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +18,7 @@ import java.util.List;
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
+    private final StockService stockService;
 
     // 상품 전체 조회
     @GetMapping
@@ -51,17 +55,19 @@ public class ProductController {
         return ResponseEntity.ok(remainingStock);
     }
 
-    // 재고 감소 (트랜잭션 처리)
-    @PostMapping("/{id}/decrease-stock")
-    public ResponseEntity<Void> decreaseStock(@PathVariable Long id, @RequestParam int count) {
-        productService.decreaseStockWithTransaction(id, count);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
     // 재고 복구 (트랜잭션 처리)
     @PostMapping("/{id}/restore-stock")
     public ResponseEntity<Void> restoreStock(@PathVariable Long id, @RequestParam int count) {
         productService.restoreStock(id, count);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    // 재고 감소
+    @PostMapping("/{productId}/stock/decrease")
+    public ResponseEntity<StockResponse> decreaseStock(
+            @PathVariable Long productId,
+            @RequestBody DecreaseStockRequest request
+    ) {
+        return ResponseEntity.ok(stockService.decreaseStock(productId, request.getQuantity()));
     }
 }
