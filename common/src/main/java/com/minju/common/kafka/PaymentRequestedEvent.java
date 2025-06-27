@@ -1,17 +1,19 @@
 package com.minju.common.kafka;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class PaymentCompletedEvent {
+public class PaymentRequestedEvent {
     private String orderId;
     private String userId;
     private String productId;
     private int quantity;
     private int amount;
-    private String status;
-    private boolean success;
+    private String status; // PAYMENT_REQUESTED
 }
