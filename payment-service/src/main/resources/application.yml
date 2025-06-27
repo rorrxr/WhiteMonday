@@ -35,15 +35,31 @@ eureka:
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: payment-group
+      group-id: payment-saga-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: '*'
+        spring.json.trusted.packages: com.minju.common.kafka
+        max.poll.records: 1
+        enable.auto.commit: false
+      enable-auto-commit: false
+      ack-mode: manual_immediate
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.in.flight.requests.per.connection: 1
+        retries: 3
+        acks: all
+
+  main:
+    web-application-type: servlet
+    log-startup-info: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
 # Circuit Breaker 설정
 resilience4j:
   circuitbreaker:

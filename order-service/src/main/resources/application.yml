@@ -31,11 +31,30 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka
 
-kafka:
-  bootstrap-servers: localhost:9092
-  producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-saga-group
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.minju.common.kafka
+        spring.json.value.default.type: com.minju.common.kafka.StockReservedEvent
+        max.poll.records: 1
+        enable.auto.commit: false
+        isolation.level: read_committed
+      enable-auto-commit: false
+      ack-mode: manual_immediate
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.in.flight.requests.per.connection: 1
+        retries: 3
+        acks: all
+        batch.size: 16384
+        linger.ms: 5
+        compression.type: snappy
 
 # Circuit Breaker 설정
 resilience4j:
