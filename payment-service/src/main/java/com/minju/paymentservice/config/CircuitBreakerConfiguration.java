@@ -1,19 +1,14 @@
-package com.minju.common.config;
+package com.minju.paymentservice.config;
 
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * WhiteMonday Circuit Breaker Configuration
@@ -24,14 +19,13 @@ import java.util.Map;
 public class CircuitBreakerConfiguration {
 
     @Bean
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
-        // Product Service 호출용 Circuit Breaker 설정
-        CircuitBreakerConfig productServiceConfig = CircuitBreakerConfig.custom()
-                .failureRateThreshold(50) // 50% 실패율
-                .waitDurationInOpenState(Duration.ofSeconds(15)) // OPEN 상태 15초 유지
-                .slidingWindowSize(10) // 10번의 호출을 기준으로 판단
-                .minimumNumberOfCalls(5) // 최소 5번 호출 후 Circuit Breaker 활성화
-                .permittedNumberOfCallsInHalfOpenState(3) // HALF-OPEN에서 3번 시도
+    public CircuitBreakerConfig productServiceCircuitBreakerConfig() {
+        return CircuitBreakerConfig.custom()
+                .failureRateThreshold(50)
+                .waitDurationInOpenState(Duration.ofSeconds(15))
+                .slidingWindowSize(10)
+                .minimumNumberOfCalls(5)
+                .permittedNumberOfCallsInHalfOpenState(3)
                 .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
                 .recordExceptions(
                         Exception.class,
@@ -44,30 +38,22 @@ public class CircuitBreakerConfiguration {
                         IllegalStateException.class
                 )
                 .build();
+    }
 
-        CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(productServiceConfig);
-
-        // productService 이름으로 Circuit Breaker 등록
-        registry.circuitBreaker("productService", productServiceConfig);
+    @Bean
+    public CircuitBreakerRegistry circuitBreakerRegistry(CircuitBreakerConfig productServiceCircuitBreakerConfig) {
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(productServiceCircuitBreakerConfig);
+        registry.circuitBreaker("productService", productServiceCircuitBreakerConfig);
 
         log.info("Circuit Breaker Registry configured with productService");
         return registry;
     }
 
-    /**
-     * Circuit Breaker 이벤트 리스너 등록
-     */
-    @PostConstruct
-    public void registerEventListener() {
-        CircuitBreakerRegistry registry = circuitBreakerRegistry();
-
-        registry.getEventPublisher().onEntryAdded(event -> {
-            CircuitBreaker circuitBreaker = event.getAddedEntry();
-            addEventListeners(circuitBreaker);
-        });
-
-        // 기존 Circuit Breaker에도 리스너 추가
-        registry.getAllCircuitBreakers().forEach(this::addEventListeners);
+    @Bean
+    public CircuitBreaker productServiceCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("productService");
+        addEventListeners(circuitBreaker);
+        return circuitBreaker;
     }
 
     private void addEventListeners(CircuitBreaker circuitBreaker) {

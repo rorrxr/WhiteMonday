@@ -1,4 +1,4 @@
-package com.minju.common.config;
+package com.minju.order.config;
 
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
