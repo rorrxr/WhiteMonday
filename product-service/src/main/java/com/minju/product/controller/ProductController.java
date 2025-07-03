@@ -58,7 +58,7 @@ public class ProductController {
     // 재고 복구 (트랜잭션 처리)
     @PostMapping("/{id}/restore-stock")
     public ResponseEntity<Void> restoreStock(@PathVariable Long id, @RequestParam int count) {
-        productService.restoreStock(id, count);
+        stockService.restoreStock(id, count);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 public class ProductService {
 
     private final ProductRepository productRepository;
+
+    @Qualifier("integerRedisTemplate") // Bean 이름 명시
     private final RedisTemplate<String, Integer> redisTemplate;
     private final RedissonClient redissonClient;
 
