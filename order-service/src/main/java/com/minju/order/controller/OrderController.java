@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,20 +19,19 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    // 주문 생성
+    // 주문 생성 → 재고 예약 이벤트 발행
     @PostMapping
-    public ResponseEntity<OrderResponseDto> createOrder(
+    public ResponseEntity<String> createOrder(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody @Valid OrderRequestDto requestDto) {
-        OrderResponseDto response = orderService.createOrder(userId, requestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        orderService.createOrderEvent(userId, requestDto);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("주문 요청 수신됨. 재고 예약 중...");
     }
 
     // 주문 내역 조회
     @GetMapping
     public ResponseEntity<List<OrderResponseDto>> getOrders(@RequestHeader("X-User-Id") Long userId) {
-        List<OrderResponseDto> orders = orderService.getOrders(userId);
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(orderService.getOrders(userId));
     }
 
     // 주문 취소
@@ -39,20 +39,18 @@ public class OrderController {
     public ResponseEntity<OrderResponseDto> cancelOrder(
             @PathVariable Long orderId,
             @RequestHeader("X-User-Id") Long userId) {
-        OrderResponseDto response = orderService.cancelOrder(orderId, userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(orderService.cancelOrder(orderId, userId));
     }
 
-    // 반품 처리
+    // 반품
     @PutMapping("/{orderId}/return")
     public ResponseEntity<OrderResponseDto> returnOrder(
             @PathVariable Long orderId,
             @RequestHeader("X-User-Id") Long userId) {
-        OrderResponseDto response = orderService.returnOrder(orderId, userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(orderService.returnOrder(orderId, userId));
     }
 
-    // 주문 상태 업데이트 (관리자용)
+    // 상태 업데이트
     @PutMapping("/update-status")
     public ResponseEntity<Void> updateOrderStatus() {
         orderService.updateOrderStatus();
