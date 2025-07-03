@@ -170,7 +170,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     @Data
     @NoArgsConstructor
-    private static class ResponseDto<T> {
+    public static class ResponseDto<T> {
         private String message;
         private T data;
 
