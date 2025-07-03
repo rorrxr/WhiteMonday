@@ -3,6 +3,7 @@ package com.minju.product;
 import com.minju.product.entity.Product;
 import com.minju.product.repository.ProductRepository;
 import com.minju.product.service.ProductService;
+import com.minju.product.service.StockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RLock;
@@ -67,6 +68,9 @@ public class ProductServiceIntegrationTest {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private StockService stockService;
 
     @MockBean
     private RedissonClient redissonClient;
@@ -144,7 +148,7 @@ public class ProductServiceIntegrationTest {
         for (int i = 0; i < threadCount; i++) {
             futures.add(executor.submit(() -> {
                 try {
-                    productService.decreaseStockWithTransaction(productId, decreaseAmount);
+                    stockService.decreaseStockWithTransaction(productId, decreaseAmount);
                     return true;
                 } catch (Exception e) {
                     return false;
