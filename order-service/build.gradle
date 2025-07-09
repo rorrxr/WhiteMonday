@@ -64,8 +64,138 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	// Test dependencies
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+cg
+	// H2 Database (테스트용)
+	testImplementation 'com.h2database:h2:2.2.224'
+
+	// 통합테스트 의존성
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+	// TestContainers BOM (Bill of Materials) - 버전 관리
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.19.3')
+
+	// TestContainers 핵심 의존성
+	testImplementation 'org.testcontainers:testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+
+	// TestContainers 각 컨테이너별 의존성
+	testImplementation 'org.testcontainers:kafka'
+	testImplementation 'org.testcontainers:mysql'
+
+	// 추가 TestContainers 유틸리티
+	testImplementation 'org.testcontainers:toxiproxy'  // 네트워크 장애 시뮬레이션 (선택사항)
+
+	// Awaitility - 비동기 테스트용
+	testImplementation 'org.awaitility:awaitility:4.2.0'
+
+	// 일반 테스트 의존성
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testImplementation 'org.assertj:assertj-core'
+	testImplementation 'org.mockito:mockito-core'
+	testImplementation 'org.mockito:mockito-junit-jupiter'
+
+	// JSON 처리
+	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation 'com.fasterxml.jackson.core:jackson-core'
+	testImplementation 'com.fasterxml.jackson.core:jackson-annotations'
+
+
 }
 
+test {
+	useJUnitPlatform()
+
+	// JVM 옵션
+	jvmArgs = [
+			'--add-opens=java.base/java.lang=ALL-UNNAMED',
+			'--add-opens=java.base/java.util=ALL-UNNAMED',
+			'--add-opens=java.base/java.time=ALL-UNNAMED'
+	]
+
+	// 테스트 환경 변수
+	environment "SPRING_PROFILES_ACTIVE", "test"
+
+	// 테스트 로그 레벨
+	systemProperty 'logging.level.org.apache.kafka', 'WARN'
+	systemProperty 'logging.level.kafka', 'WARN'
+	systemProperty 'logging.level.org.testcontainers', 'INFO'
+
+	// 테스트 타임아웃 설정
+	systemProperty 'junit.jupiter.execution.timeout.default', '5m'
+	systemProperty 'junit.jupiter.execution.timeout.testable.method.default', '2m'
+
+	// TestContainers 설정
+	systemProperty 'testcontainers.reuse.enable', 'true'
+	systemProperty 'testcontainers.ryuk.disabled', 'false'
+
+	// 병렬 실행 비활성화 (통합테스트에서는 순차 실행)
+	maxParallelForks = 1
+
+	// 테스트 결과 출력
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat "full"
+		showStandardStreams = false
+	}
+}
+
+// 통합테스트 전용 태스크
+task integrationTest(type: Test) {
+	description = 'Runs integration tests'
+	group = 'verification'
+
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
+
+	// 통합테스트 전용 설정
+	environment "SPRING_PROFILES_ACTIVE", "integration-test"
+
+	// 더 긴 타임아웃
+	systemProperty 'junit.jupiter.execution.timeout.default', '10m'
+	systemProperty 'junit.jupiter.execution.timeout.testable.method.default', '5m'
+
+	// 메모리 설정
+	minHeapSize = "512m"
+	maxHeapSize = "2g"
+
+	// 통합테스트는 단일 스레드로 실행
+	maxParallelForks = 1
+
+	// 상세한 로그 출력
+	testLogging {
+		events "started", "passed", "skipped", "failed"
+		exceptionFormat "full"
+		showStandardStreams = true
+	}
+
+	reports {
+		html.destination = file("${buildDir}/reports/integration-tests")
+		junitXml.destination = file("${buildDir}/test-results/integration-test")
+	}
+}
+
+// 단위테스트 전용 태스크
+task unitTest(type: Test) {
+	description = 'Runs unit tests'
+	group = 'verification'
+
+	useJUnitPlatform {
+		excludeTags 'integration'
+	}
+
+	environment "SPRING_PROFILES_ACTIVE", "test"
+
+	reports {
+		html.destination = file("${buildDir}/reports/unit-tests")
+		junitXml.destination = file("${buildDir}/test-results/unit-test")
+	}
+}
+
+// check 태스크가 통합테스트도 포함하도록 설정
+check.dependsOn integrationTest
+integrationTest.mustRunAfter unitTest
 dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.4" // Spring Cloud BOM 설정
