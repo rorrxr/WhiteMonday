@@ -76,7 +76,7 @@ docker-compose up --build -d
 - 프로젝트 인원 : 1인 (개인)
 
 ## 🛠 아키텍처
-
+![시스템 아키텍처.drawio.png](image/%EC%8B%9C%EC%8A%A4%ED%85%9C%20%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98.drawio.png)
 
 ## 🚀 주요 기능
 ### 📌 사용자 관리
