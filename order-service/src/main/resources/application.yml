@@ -56,6 +56,10 @@ eureka:
         linger.ms: 5
         compression.type: snappy
 
+# Outbox 스케줄러 활성화
+scheduling:
+  enabled: true
+
 # Circuit Breaker 설정
 resilience4j:
   circuitbreaker:
