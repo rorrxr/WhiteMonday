@@ -1,10 +1,6 @@
 package com.minju.paymentservice.service;
 
-
-import com.minju.common.kafka.PaymentCompletedEvent;
-import com.minju.common.kafka.PaymentManualProcessingEvent;
 import com.minju.common.kafka.PaymentRequestedEvent;
-import com.minju.paymentservice.client.ProductServiceFeignClient;
 import com.minju.paymentservice.dto.PaymentRequestDto;
 import com.minju.paymentservice.entity.Payment;
 import com.minju.paymentservice.repository.PaymentRepository;
@@ -12,13 +8,10 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Random;
-
 
 @Service
 @RequiredArgsConstructor
@@ -26,62 +19,46 @@ import java.util.Random;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final ProductServiceFeignClient productServiceFeignClient;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    private static final String PRODUCT_CB = "productService";
     private static final String EXTERNAL_PAYMENT_CB = "external-payment-gateway";
     private final Random random = new Random();
 
-    // 기존 결제 진입 검증 로직
+    /**
+     * 기존 결제 진입 검증 로직 (동기)
+     */
     public boolean validatePaymentEntry(PaymentRequestDto paymentRequestDto) {
         return "결제 진행 중".equals(paymentRequestDto.getPaymentStatus());
     }
 
-    // 기존 결제 처리 로직 (PaymentRequestDto용)
-    @CircuitBreaker(name = PRODUCT_CB, fallbackMethod = "restoreStockFallback")
-    public boolean processPayment(PaymentRequestDto requestDto) {
-        try {
-            // 20% 실패 시뮬레이션
-            boolean isSuccess = new Random().nextInt(100) >= 20;
-
-            if (isSuccess) {
-                // 결제 성공 처리
-                log.info("Payment succeeded for product ID: {}", requestDto.getProductId());
-                return true;
-            } else {
-                // 결제 실패 처리: 재고 복구 요청
-                log.info("Payment failed for product ID: {}. Restoring stock...", requestDto.getProductId());
-                productServiceFeignClient.restoreStock(requestDto.getProductId(), requestDto.getQuantity());
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("Error occurred during payment processing: ", e);
-            throw new RuntimeException("결제 처리 중 오류 발생", e);
-        }
-    }
-
-    // SAGA 패턴용 결제 처리 로직 (PaymentRequestedEvent용)
+    /**
+     * SAGA 패턴용 결제 처리 로직 (Circuit Breaker + Retry)
+     * Payment Service는 독립적으로 동작하므로 외부 의존성 없음
+     */
     @CircuitBreaker(name = EXTERNAL_PAYMENT_CB, fallbackMethod = "processPaymentFallback")
     @Retry(name = EXTERNAL_PAYMENT_CB, fallbackMethod = "processPaymentRetryFallback")
     @Transactional
     public boolean processPayment(PaymentRequestedEvent event) {
-        log.info("SAGA 결제 처리 시작: {}", event);
+        log.info("SAGA 결제 처리 시작: orderId={}, amount={}", event.getOrderId(), event.getAmount());
 
         try {
-            // 결제 정보 저장
+            // Payment 엔티티 생성 및 저장
             Payment payment = new Payment();
+            payment.setOrderId(Long.parseLong(event.getOrderId()));
+            payment.setUserId(Long.parseLong(event.getUserId()));
+            payment.setAmount(event.getAmount());
             payment.setPaymentStatus("PROCESSING");
             payment.setPaymentMethod("CARD");
-            paymentRepository.save(payment);
 
-            // 외부 결제 게이트웨이 호출 시뮬레이션
+            Payment savedPayment = paymentRepository.save(payment);
+            log.info("Payment 엔티티 저장 완료 - paymentId: {}", savedPayment.getId());
+
+            // 2. 외부 결제 게이트웨이 호출 시뮬레이션
             boolean result = callExternalPaymentGateway(event);
 
-            // 결제 결과에 따른 상태 업데이트
-            payment.setPaymentStatus(result ? "COMPLETED" : "FAILED");
-            paymentRepository.save(payment);
+            // 3. 결제 결과에 따른 상태 업데이트
+            savedPayment.setPaymentStatus(result ? "COMPLETED" : "FAILED");
+            paymentRepository.save(savedPayment);
 
+            log.info("결제 처리 완료 - orderId: {}, result: {}", event.getOrderId(), result);
             return result;
 
         } catch (Exception e) {
@@ -90,55 +67,71 @@ public class PaymentService {
         }
     }
 
+    /**
+     * 외부 결제 게이트웨이 호출 시뮬레이션 (80% 성공률)
+     */
     private boolean callExternalPaymentGateway(PaymentRequestedEvent event) {
-        // 외부 결제 시스템 호출 시뮬레이션 (80% 성공률)
-        if (random.nextInt(100) < 80) {
-            log.info("결제 성공 - orderId: {}, amount: {}", event.getOrderId(), event.getAmount());
-            return true;
-        } else {
-            log.warn("결제 실패 - orderId: {}", event.getOrderId());
-            throw new RuntimeException("외부 결제 게이트웨이 오류");
+        // 실제로는 PG사 API 호출 (토스페이먼츠, 카카오페이 등)
+        try {
+            Thread.sleep(500); // 외부 API 호출 시뮬레이션
+
+            if (random.nextInt(100) < 80) {
+                log.info("외부 PG 결제 승인 - orderId: {}, amount: {}",
+                        event.getOrderId(), event.getAmount());
+                return true;
+            } else {
+                log.warn("외부 PG 결제 거부 - orderId: {}", event.getOrderId());
+                throw new RuntimeException("외부 결제 게이트웨이 승인 거부");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("결제 처리 중 인터럽트 발생", e);
         }
     }
 
-    // Fallback Methods for SAGA pattern
+    // ==================== Circuit Breaker Fallback Methods ====================
+
+    /**
+     * 결제 Circuit Breaker Fallback
+     */
     public boolean processPaymentFallback(PaymentRequestedEvent event, Exception ex) {
         log.error("결제 Circuit Breaker 활성화 - orderId: {}, error: {}",
                 event.getOrderId(), ex.getMessage());
 
-        // 수동 처리 이벤트 발행
-        publishPaymentManualProcessingEvent(event);
+        // Circuit Breaker 활성화 시 DB에 FAILED 상태 저장
+        saveFailedPayment(event, "Circuit Breaker 활성화");
         return false;
     }
 
+    /**
+     * 결제 Retry Fallback
+     */
     public boolean processPaymentRetryFallback(PaymentRequestedEvent event, Exception ex) {
         log.error("결제 재시도 실패 - orderId: {}, error: {}",
                 event.getOrderId(), ex.getMessage());
 
-        publishPaymentManualProcessingEvent(event);
+        saveFailedPayment(event, "재시도 실패: " + ex.getMessage());
         return false;
     }
 
-    // Fallback Method for original pattern
-    public boolean restoreStockFallback(PaymentRequestDto requestDto, Throwable t) {
-        log.error("재고 복구 실패 (fallback). Error: {}", t.getMessage());
-        return false;
-    }
-
-    private void publishPaymentManualProcessingEvent(PaymentRequestedEvent event) {
+    /**
+     * 실패한 결제 정보 저장
+     */
+    @Transactional
+    private void saveFailedPayment(PaymentRequestedEvent event, String reason) {
         try {
-            PaymentManualProcessingEvent manualEvent = PaymentManualProcessingEvent.builder()
-                    .orderId(event.getOrderId())
-                    .amount(event.getAmount())
-                    .reason("자동 결제 실패 - 수동 처리 필요")
-                    .status("MANUAL_PROCESSING_REQUIRED")
-                    .build();
+            Payment payment = new Payment();
+            payment.setOrderId(Long.parseLong(event.getOrderId()));
+            payment.setUserId(Long.parseLong(event.getUserId()));
+            payment.setAmount(event.getAmount());
+            payment.setPaymentStatus("FAILED");
+            payment.setPaymentMethod("CARD");
+            payment.setFailureReason(reason);
 
-            kafkaTemplate.send("payment-manual-processing-topic", manualEvent);
-            log.info("수동 처리 이벤트 발행: {}", manualEvent);
-
+            paymentRepository.save(payment);
+            log.info("실패한 결제 정보 저장 완료 - orderId: {}", event.getOrderId());
         } catch (Exception e) {
-            log.error("수동 처리 이벤트 발행 실패: ", e);
+            log.error("실패한 결제 정보 저장 실패: ", e);
         }
     }
 }
