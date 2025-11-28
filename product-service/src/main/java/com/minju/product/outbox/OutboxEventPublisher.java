@@ -1,6 +1,7 @@
 package com.minju.product.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minju.common.kafka.stock.StockReservationFailedEvent;
 import com.minju.common.outbox.OutboxEvent;
 import com.minju.common.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
@@ -100,7 +101,7 @@ public class OutboxEventPublisher {
             case "STOCK_RESERVED" ->
                     com.minju.common.kafka.StockReservedEvent.class;
             case "STOCK_RESERVATION_FAILED" ->
-                    com.minju.common.kafka.StockReservationFailedEvent.class;
+                    StockReservationFailedEvent.class;
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
     }

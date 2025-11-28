@@ -1,9 +1,9 @@
 package com.minju.product.saga;
 
-import com.minju.common.kafka.StockReservationFailedEvent;
+import com.minju.common.kafka.stock.StockReservationFailedEvent;
 import com.minju.common.kafka.StockReservationRequestEvent;
 import com.minju.common.kafka.StockReservedEvent;
-import com.minju.common.kafka.StockRestoreEvent;
+import com.minju.common.kafka.stock.StockRestoreEvent;
 import com.minju.product.outbox.OutboxEventPublisher;
 import com.minju.product.service.StockService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;

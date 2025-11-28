@@ -1,6 +1,10 @@
 package com.minju.order.saga;
 
 import com.minju.common.kafka.*;
+import com.minju.common.kafka.order.OrderCancelledEvent;
+import com.minju.common.kafka.order.OrderCompletedEvent;
+import com.minju.common.kafka.stock.StockReservationFailedEvent;
+import com.minju.common.kafka.stock.StockRestoreEvent;
 import com.minju.order.entity.Orders;
 import com.minju.order.outbox.OutboxEventPublisher;
 import com.minju.order.repository.OrderRepository;

@@ -1,4 +1,4 @@
-package com.minju.common.kafka;
+package com.minju.common.kafka.order;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,10 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockRestoreEvent {
+public class OrderCancelledEvent {
     private String orderId;
-    private String productId;
-    private int quantity;
     private String reason;
-    private String status; // STOCK_RESTORE_REQUESTED
+    private String status; // CANCELLED
 }

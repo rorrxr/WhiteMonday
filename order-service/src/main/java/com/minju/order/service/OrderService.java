@@ -1,8 +1,8 @@
 package com.minju.order.service;
 
 import com.minju.common.dto.CartResponseDto;
-import com.minju.common.dto.ProductDto;
 import com.minju.common.kafka.StockReservationRequestEvent;
+import com.minju.common.kafka.stock.StockRestoreEvent;
 import com.minju.order.client.CartServiceClient;
 import com.minju.order.client.ProductServiceClient;
 import com.minju.order.dto.*;
@@ -215,8 +215,8 @@ public class OrderService {
      */
     private void publishStockRestoreEvent(Orders order, String reason) {
         for (OrderItem orderItem : order.getOrderItems()) {
-            com.minju.common.kafka.StockRestoreEvent event =
-                    com.minju.common.kafka.StockRestoreEvent.builder()
+            StockRestoreEvent event =
+                    StockRestoreEvent.builder()
                             .orderId(String.valueOf(order.getId()))
                             .productId(String.valueOf(orderItem.getProductId()))
                             .quantity(orderItem.getQuantity())
