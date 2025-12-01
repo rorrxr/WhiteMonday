@@ -1,13 +1,12 @@
 package com.minju.paymentservice.controller;
 
+import com.minju.common.dto.CommonResponse;
 import com.minju.paymentservice.dto.PaymentRequestDto;
 import com.minju.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,33 +14,40 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
     private final PaymentService paymentService;
 
-
     // 결제 진입 API
     @PostMapping("/enter")
-    public ResponseEntity<String> enterPayment(@RequestBody PaymentRequestDto paymentRequestDto) {
+    public ResponseEntity<CommonResponse<Void>> enterPayment(@RequestBody PaymentRequestDto paymentRequestDto) {
         boolean canProceed = paymentService.validatePaymentEntry(paymentRequestDto);
+
         if (canProceed) {
-            return ResponseEntity.ok("Payment entry is valid.");
+            return ResponseEntity.ok(
+                    CommonResponse.success("결제 진입 검증에 성공했습니다.", null)
+            );
         } else {
-            return ResponseEntity.badRequest().body("Payment entry is invalid.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(CommonResponse.error(
+                            HttpStatus.BAD_REQUEST.value(),
+                            "결제 진입 조건을 만족하지 못했습니다."
+                    ));
         }
     }
 
-    // 결제 API
-//    @PostMapping("/process")
-//    public ResponseEntity<String> processPayment(@RequestBody PaymentRequestDto paymentRequestDto) {
-//        boolean success = paymentService.processPayment(paymentRequestDto);
-//        if (success) {
-//            return ResponseEntity.ok("Payment succeeded.");
-//        } else {
-//            return ResponseEntity.ok("Payment failed.");
-//        }
-//    }
-    
     // 결제 처리
     @PostMapping("/process")
-    public ResponseEntity<String> processPayment(@RequestBody PaymentRequestDto requestDto) {
+    public ResponseEntity<CommonResponse<Void>> processPayment(@RequestBody PaymentRequestDto requestDto) {
         boolean isSuccess = paymentService.processPayment(requestDto);
-        return ResponseEntity.ok(isSuccess ? "결제 성공" : "결제 실패");
+
+        if (isSuccess) {
+            return ResponseEntity.ok(
+                    CommonResponse.success("결제가 성공적으로 처리되었습니다.", null)
+            );
+        } else {
+            // 400 혹은 402 Payment Required 등으로도 확장 가능
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(CommonResponse.error(
+                            HttpStatus.BAD_REQUEST.value(),
+                            "결제 처리에 실패했습니다."
+                    ));
+        }
     }
 }
