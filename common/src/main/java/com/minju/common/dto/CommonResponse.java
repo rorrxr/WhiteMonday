@@ -1,102 +1,59 @@
 package com.minju.common.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class CommonResponse<T> {
-    private String message;
-    private int status;
-    private T data;
-    private int code;
 
-    public CommonResponse(int code, String message, T data) {
-        this.code = code;
-        this.message = message;
-        this.data = data;
-    }
+    private boolean success;      // 성공 여부
+    private int status;           // HTTP status code
+    private int code;             // 비즈니스 에러 코드 (성공 시 0)
+    private String message;       // 메시지
+    private T data;               // 응답 데이터
+    private LocalDateTime timestamp;
 
-    // Success Response
-    public static CommonResponse<Void> success() {
-        return CommonResponse.<Void>builder()
-                .message("The request was successful")
-                .status(200)
-                .build();
-    }
+    // 성공 응답
 
     public static <T> CommonResponse<T> success(T data) {
-        return CommonResponse.<T>builder()
-                .message("The request was successful")
-                .status(200)
-                .data(data)
-                .build();
+        return success("The request was successful", data);
     }
 
     public static <T> CommonResponse<T> success(String message, T data) {
         return CommonResponse.<T>builder()
-                .message(message)
+                .success(true)
                 .status(200)
+                .code(0) // 성공은 0으로 통일
+                .message(message)
                 .data(data)
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
-    public static <T> CommonResponse<T> success(int status, String message, T data) {
+    public static CommonResponse<Void> success() {
+        return success(null);
+    }
+
+    // 에러 응답
+
+    public static <T> CommonResponse<T> error(int status, int code, String message) {
+        return error(status, code, message, null);
+    }
+
+    public static <T> CommonResponse<T> error(int status, int code, String message, T data) {
         return CommonResponse.<T>builder()
-                .message(message)
+                .success(false)
                 .status(status)
+                .code(code)
+                .message(message)
                 .data(data)
-                .build();
-    }
-
-    // Error Response
-    public static CommonResponse<Void> error() {
-        return CommonResponse.<Void>builder()
-                .message("Internal Server Error: An unexpected error occurred.")
-                .status(500)
-                .build();
-    }
-
-    public static CommonResponse<Void> error(int status) {
-        String message = switch (status) {
-            case 400 -> "Bad Request: The request is invalid.";
-            case 401 -> "Unauthorized: Authentication is required.";
-            case 403 -> "Forbidden: Access to the resource is denied.";
-            case 404 -> "Not Found: The requested resource could not be found.";
-            case 405 -> "Method Not Allowed: The HTTP method is not supported.";
-            case 409 -> "Conflict: The request conflicts with the current resource state.";
-            case 415 -> "Unsupported Media Type: The media format is not supported.";
-            case 422 -> "Unprocessable Entity: The request could not be processed.";
-            case 429 -> "Too Many Requests: Rate limit exceeded. Please try again later.";
-            case 500 -> "Internal Server Error: An unexpected error occurred.";
-            case 502 -> "Bad Gateway: The server received an invalid response.";
-            case 503 -> "Service Unavailable: The server is temporarily unavailable. Please try again later.";
-            case 504 -> "Gateway Timeout: The server did not respond in time. Please try again later.";
-            default -> "Unexpected Error: An unknown error occurred. Please contact support.";
-        };
-
-        return CommonResponse.<Void>builder()
-                .message(message)
-                .status(status)
-                .build();
-    }
-
-    public static CommonResponse<Void> error(int status, String message) {
-        return CommonResponse.<Void>builder()
-                .message(message)
-                .status(status)
-                .build();
-    }
-
-    public static <T> CommonResponse<T> error(int status, String message, T data) {
-        return CommonResponse.<T>builder()
-                .message(message)
-                .status(status)
-                .data(data)
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 }
