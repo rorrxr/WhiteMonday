@@ -55,7 +55,6 @@ public class ProductController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(
-                        HttpStatus.CREATED.value(),
                         "상품이 정상적으로 등록되었습니다.",
                         savedProduct
                 ));
