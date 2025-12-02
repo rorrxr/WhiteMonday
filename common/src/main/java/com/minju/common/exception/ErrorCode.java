@@ -17,6 +17,14 @@ public enum ErrorCode {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 2000, "해당 유저를 찾을 수 없습니다."),
 
+    // 인증(Auth) 관련
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 2100, "인증 정보가 필요합니다."),
+    ACCESS_DENIED(HttpStatus.FORBIDDEN, 2101, "접근 권한이 없습니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, 2102, "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, 2103, "토큰이 만료되었습니다."),
+    EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, 2104, "이메일 인증이 필요합니다."),
+    EMAIL_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, 2105, "이미 존재하는 이메일입니다."),
+
     // CART 도메인
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, 3000, "장바구니를 찾을 수 없습니다."),
     CART_PRODUCT_ALREADY(HttpStatus.BAD_REQUEST, 3001, "해당 상품이 이미 장바구니에 존재합니다."),
