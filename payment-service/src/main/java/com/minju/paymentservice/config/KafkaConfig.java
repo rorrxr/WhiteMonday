@@ -1,7 +1,5 @@
 package com.minju.paymentservice.config;
 
-import com.minju.common.kafka.PaymentCompletedEvent;
-import com.minju.common.kafka.PaymentManualProcessingEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;

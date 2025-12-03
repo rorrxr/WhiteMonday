@@ -1,8 +1,8 @@
 package com.minju.paymentservice.saga;
 
-import com.minju.common.kafka.PaymentCompletedEvent;
-import com.minju.common.kafka.PaymentFailedEvent;
-import com.minju.common.kafka.PaymentRequestedEvent;
+import com.minju.common.kafka.payment.PaymentCompletedEvent;
+import com.minju.common.kafka.payment.PaymentFailedEvent;
+import com.minju.common.kafka.payment.PaymentRequestedEvent;
 import com.minju.paymentservice.outbox.OutboxEventPublisher;
 import com.minju.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;

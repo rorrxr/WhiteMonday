@@ -1,6 +1,6 @@
 package com.minju.paymentservice.service;
 
-import com.minju.common.kafka.PaymentRequestedEvent;
+import com.minju.common.kafka.payment.PaymentRequestedEvent;
 import com.minju.paymentservice.dto.PaymentRequestDto;
 import com.minju.paymentservice.entity.Payment;
 import com.minju.paymentservice.repository.PaymentRepository;
@@ -28,6 +28,7 @@ public class PaymentService {
     public boolean validatePaymentEntry(PaymentRequestDto paymentRequestDto) {
         return "결제 진행 중".equals(paymentRequestDto.getPaymentStatus());
     }
+
 
     /**
      * SAGA 패턴용 결제 처리 로직 (Circuit Breaker + Retry)

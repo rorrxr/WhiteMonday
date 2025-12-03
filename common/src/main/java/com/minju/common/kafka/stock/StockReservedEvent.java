@@ -1,4 +1,4 @@
-package com.minju.common.kafka;
+package com.minju.common.kafka.stock;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,11 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentRequestedEvent {
+public class StockReservedEvent {
     private String orderId;
-    private String userId;
     private String productId;
     private int quantity;
-    private int amount;
-    private String status; // PAYMENT_REQUESTED
+    private String status; // STOCK_RESERVED
 }

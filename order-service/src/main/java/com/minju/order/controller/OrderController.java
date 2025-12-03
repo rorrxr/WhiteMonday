@@ -30,7 +30,6 @@ public class OrderController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(
-                        HttpStatus.CREATED.value(),
                         "주문이 정상적으로 생성되었습니다.",
                         response
                 ));

@@ -1,7 +1,7 @@
 package com.minju.order.service;
 
 import com.minju.common.dto.CartResponseDto;
-import com.minju.common.kafka.StockReservationRequestEvent;
+import com.minju.common.kafka.stock.StockReservationRequestEvent;
 import com.minju.common.kafka.stock.StockRestoreEvent;
 import com.minju.order.client.CartServiceClient;
 import com.minju.order.client.ProductServiceClient;

@@ -99,7 +99,7 @@ public class OutboxEventPublisher {
     private Class<?> getEventClass(String eventType) {
         return switch (eventType) {
             case "STOCK_RESERVED" ->
-                    com.minju.common.kafka.StockReservedEvent.class;
+                    com.minju.common.kafka.stock.StockReservedEvent.class;
             case "STOCK_RESERVATION_FAILED" ->
                     StockReservationFailedEvent.class;
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);

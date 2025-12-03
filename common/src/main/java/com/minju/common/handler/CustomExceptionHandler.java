@@ -15,14 +15,14 @@ public class CustomExceptionHandler {
     @ExceptionHandler(CustomNotFoundException.class)
     public ResponseEntity<CommonResponse<?>> handleCustomNotFoundException(CustomNotFoundException e) {
         log.error("CustomExceptionHandler CustomNotFoundException occurred: {}", e.getMessage(), e);
-        return ResponseEntity.status(801)
-                .body(CommonResponse.error(801));
+        return ResponseEntity.status(404)
+                .body(CommonResponse.error(404, 801, e.getMessage()));
     }
 
     @ExceptionHandler(CustomValidateException.class)
     public ResponseEntity<CommonResponse<?>> handleCustomValidateException(CustomValidateException e) {
         log.error("CustomExceptionHandler CustomValidateException occurred: {}", e.getMessage(), e);
-        return ResponseEntity.status(802)
-                .body(CommonResponse.error(802));
+        return ResponseEntity.status(400)
+                .body(CommonResponse.error(400, 802, e.getMessage()));
     }
 }

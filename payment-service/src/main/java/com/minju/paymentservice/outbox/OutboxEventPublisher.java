@@ -1,6 +1,9 @@
 package com.minju.paymentservice.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minju.common.kafka.payment.PaymentCompletedEvent;
+import com.minju.common.kafka.payment.PaymentFailedEvent;
+import com.minju.common.kafka.payment.PaymentRequestedEvent;
 import com.minju.common.outbox.OutboxEvent;
 import com.minju.common.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
@@ -98,9 +101,9 @@ public class OutboxEventPublisher {
     private Class<?> getEventClass(String eventType) {
         return switch (eventType) {
             case "PAYMENT_COMPLETED" ->
-                    com.minju.common.kafka.PaymentCompletedEvent.class;
+                    PaymentCompletedEvent.class;
             case "PAYMENT_FAILED" ->
-                    com.minju.common.kafka.PaymentFailedEvent.class;
+                    PaymentFailedEvent.class;
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
     }

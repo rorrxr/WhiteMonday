@@ -1,4 +1,4 @@
-package com.minju.common.kafka;
+package com.minju.common.kafka.payment;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
