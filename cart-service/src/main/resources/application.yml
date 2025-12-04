@@ -1,0 +1,147 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: cart-service
+  profiles:
+    active: dev
+
+  # 데이터베이스 설정
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        use_sql_comments: true
+
+  # Spring Cloud 호환성 설정
+  main:
+    web-application-type: servlet
+    log-startup-info: true
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+# Eureka 클라이언트 설정
+eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+# Feign Client 설정
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 15000
+        logger-level: basic
+      product-service:
+        connect-timeout: 3000
+        read-timeout: 10000
+  circuitbreaker:
+    enabled: true
+
+# Circuit Breaker 설정 (Resilience4j)
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - java.lang.Exception
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+          - java.lang.IllegalStateException
+
+  retry:
+    instances:
+      productService:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - feign.RetryableException
+
+  ratelimiter:
+    instances:
+      productService:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 500ms
+
+# Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    circuitbreakers:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+    tags:
+      service: cart-service
+      environment: ${spring.profiles.active:dev}
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET_KEY}
+
+# 로깅 설정
+logging:
+  level:
+    org.springframework.cloud: DEBUG
+    io.github.resilience4j: DEBUG
+    org.example.cartservice: INFO
+    feign: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
