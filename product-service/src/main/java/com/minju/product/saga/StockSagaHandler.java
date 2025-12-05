@@ -1,5 +1,8 @@
 package com.minju.product.saga;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minju.common.dlq.DeadLetterEvent;
+import com.minju.common.dlq.DeadLetterEventRepository;
 import com.minju.common.kafka.stock.StockReservationFailedEvent;
 import com.minju.common.kafka.stock.StockReservationRequestEvent;
 import com.minju.common.kafka.stock.StockReservedEvent;
@@ -21,6 +24,8 @@ public class StockSagaHandler {
 
     private final StockService stockService;
     private final OutboxEventPublisher outboxPublisher;
+    private final DeadLetterEventRepository deadLetterEventRepository;
+    private final ObjectMapper objectMapper;
 
     private static final String REDIS_CB = "redis-operation";
 
@@ -104,8 +109,8 @@ public class StockSagaHandler {
 
         } catch (Exception e) {
             log.error("재고 복구 실패: orderId={}", event.getOrderId(), e);
-            // 재고 복구 실패는 치명적 - 별도 모니터링/알림 필요
-            // DLQ(Dead Letter Queue)로 전송하거나 수동 처리 필요
+            // DLQ(Dead Letter Queue)로 저장
+            saveToDeadLetterQueue(event, "stock-restore-topic", e);
         }
     }
 
@@ -126,7 +131,43 @@ public class StockSagaHandler {
     public void handleStockRestoreFallback(StockRestoreEvent event, Exception ex) {
         log.error("재고 복구 Circuit Breaker 활성화 - orderId: {}, error: {}",
                 event.getOrderId(), ex.getMessage());
-        // 재고 복구 실패는 치명적이므로 별도 처리 필요
+        // DLQ(Dead Letter Queue)로 저장
+        saveToDeadLetterQueue(event, "stock-restore-topic", ex);
+    }
+
+    /**
+     * Dead Letter Queue에 실패 이벤트 저장
+     */
+    private void saveToDeadLetterQueue(Object event, String originalTopic, Exception ex) {
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            String aggregateId = extractAggregateId(event);
+
+            DeadLetterEvent dlqEvent = DeadLetterEvent.create(
+                    event.getClass().getSimpleName(),
+                    originalTopic,
+                    aggregateId,
+                    payload,
+                    ex.getMessage(),
+                    ex.getClass().getSimpleName()
+            );
+
+            deadLetterEventRepository.save(dlqEvent);
+            log.error("[DLQ] 이벤트 저장 완료 - eventType: {}, aggregateId: {}, error: {}",
+                    event.getClass().getSimpleName(), aggregateId, ex.getMessage());
+
+        } catch (Exception e) {
+            log.error("[DLQ] 이벤트 저장 실패 - 수동 처리 필요: ", e);
+        }
+    }
+
+    private String extractAggregateId(Object event) {
+        if (event instanceof StockRestoreEvent) {
+            return ((StockRestoreEvent) event).getOrderId();
+        } else if (event instanceof StockReservationRequestEvent) {
+            return ((StockReservationRequestEvent) event).getOrderId();
+        }
+        return "UNKNOWN";
     }
 
     /**
