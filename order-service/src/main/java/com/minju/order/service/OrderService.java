@@ -70,6 +70,11 @@ public class OrderService {
         }
 
         order.setTotalAmount(totalAmount);
+        // 다중 상품 Saga 동기화를 위한 총 상품 수 설정
+        order.setTotalItemCount(order.getOrderItems().size());
+        order.setReservedItemCount(0);
+        order.setFailedItemCount(0);
+
         Orders savedOrder = orderRepository.save(order);
 
         // 같은 트랜잭션 내에서 Outbox 이벤트 저장
