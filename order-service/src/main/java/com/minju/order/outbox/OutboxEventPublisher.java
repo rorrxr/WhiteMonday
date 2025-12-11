@@ -1,9 +1,12 @@
 package com.minju.order.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minju.common.kafka.order.OrderCancelledEvent;
+import com.minju.common.kafka.order.OrderCompletedEvent;
 import com.minju.common.kafka.order.OrderCreatedEvent;
 import com.minju.common.kafka.payment.PaymentRequestedEvent;
 import com.minju.common.kafka.stock.StockReservationRequestEvent;
+import com.minju.common.kafka.stock.StockRestoreEvent;
 import com.minju.common.outbox.OutboxEvent;
 import com.minju.common.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
@@ -102,10 +105,16 @@ public class OutboxEventPublisher {
         return switch (eventType) {
             case "STOCK_RESERVATION_REQUESTED" ->
                     StockReservationRequestEvent.class;
+            case "STOCK_RESTORE_REQUESTED" ->
+                    StockRestoreEvent.class;
             case "PAYMENT_REQUESTED" ->
                     PaymentRequestedEvent.class;
             case "ORDER_CREATED" ->
                     OrderCreatedEvent.class;
+            case "ORDER_COMPLETED" ->
+                    OrderCompletedEvent.class;
+            case "ORDER_CANCELLED" ->
+                    OrderCancelledEvent.class;
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
     }
