@@ -1,5 +1,7 @@
 package com.minju.paymentservice.saga;
 
+import com.minju.common.idempotency.ProcessedEvent;
+import com.minju.common.idempotency.ProcessedEventRepository;
 import com.minju.common.kafka.payment.PaymentCompletedEvent;
 import com.minju.common.kafka.payment.PaymentFailedEvent;
 import com.minju.common.kafka.payment.PaymentRequestedEvent;
@@ -16,8 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class PaymentSagaHandler {
 
+    private static final String SERVICE_NAME = "PAYMENT_SAGA";
+
     private final PaymentService paymentService;
     private final OutboxEventPublisher outboxPublisher;
+    private final ProcessedEventRepository processedEventRepository;
 
     /**
      * 결제 요청 처리 - Outbox 패턴 적용
@@ -27,6 +32,14 @@ public class PaymentSagaHandler {
     @Transactional
     public void handlePaymentRequest(PaymentRequestedEvent event) {
         log.info("결제 요청 수신: orderId={}, amount={}", event.getOrderId(), event.getAmount());
+
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "PAYMENT_REQUESTED", null);
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
 
         try {
             // 1. 결제 처리 (Payment 엔티티 저장 포함)
@@ -57,6 +70,9 @@ public class PaymentSagaHandler {
                 // 2-2. 결제 실패 → Outbox에 실패 이벤트 저장
                 publishPaymentFailedEvent(event, "결제 처리 실패");
             }
+
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "PAYMENT_REQUESTED", null);
 
         } catch (Exception e) {
             log.error("결제 처리 중 오류: orderId={}", event.getOrderId(), e);
@@ -90,6 +106,29 @@ public class PaymentSagaHandler {
 
         } catch (Exception e) {
             log.error("결제 실패 이벤트 저장 중 오류: ", e);
+        }
+    }
+
+    // ==================== 멱등성 처리 헬퍼 메서드 ====================
+
+    /**
+     * 이벤트가 이미 처리되었는지 확인
+     */
+    private boolean isEventAlreadyProcessed(String eventId) {
+        return processedEventRepository.existsById(eventId);
+    }
+
+    /**
+     * 이벤트 처리 완료 기록
+     */
+    private void markEventAsProcessed(String aggregateId, String eventType, String subId) {
+        try {
+            ProcessedEvent processedEvent = ProcessedEvent.create(
+                    aggregateId, eventType, subId, SERVICE_NAME);
+            processedEventRepository.save(processedEvent);
+            log.debug("이벤트 처리 완료 기록: {}", processedEvent.getEventId());
+        } catch (Exception e) {
+            log.error("이벤트 처리 기록 실패 (무시됨): {}", e.getMessage());
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.minju.order.saga;
 
+import com.minju.common.idempotency.ProcessedEvent;
+import com.minju.common.idempotency.ProcessedEventRepository;
 import com.minju.common.kafka.order.OrderCancelledEvent;
 import com.minju.common.kafka.order.OrderCompletedEvent;
 import com.minju.common.kafka.payment.PaymentCompletedEvent;
@@ -22,8 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SagaOrchestrator {
 
+    private static final String SERVICE_NAME = "ORDER_SAGA";
+
     private final OrderRepository orderRepository;
     private final OutboxEventPublisher outboxPublisher;
+    private final ProcessedEventRepository processedEventRepository;
 
     /**
      * 재고 예약 성공 이벤트 수신
@@ -34,6 +39,14 @@ public class SagaOrchestrator {
     public void handleStockReserved(StockReservedEvent event) {
         log.info("재고 예약 성공 수신: orderId={}, productId={}",
                 event.getOrderId(), event.getProductId());
+
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "STOCK_RESERVED", event.getProductId());
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
 
         try {
             Orders order = orderRepository.findById(Long.parseLong(event.getOrderId()))
@@ -86,6 +99,9 @@ public class SagaOrchestrator {
                         order.getTotalItemCount() - order.getReservedItemCount() - order.getFailedItemCount());
             }
 
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "STOCK_RESERVED", event.getProductId());
+
         } catch (Exception e) {
             log.error("재고 예약 성공 처리 중 오류: orderId={}", event.getOrderId(), e);
             publishStockRestoreEvent(event, "SAGA 처리 오류");
@@ -101,6 +117,14 @@ public class SagaOrchestrator {
     public void handleStockReservationFailed(StockReservationFailedEvent event) {
         log.error("재고 예약 실패 수신: orderId={}, productId={}, reason={}",
                 event.getOrderId(), event.getProductId(), event.getReason());
+
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "STOCK_RESERVATION_FAILED", event.getProductId());
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
 
         try {
             Orders order = orderRepository.findById(Long.parseLong(event.getOrderId()))
@@ -143,6 +167,9 @@ public class SagaOrchestrator {
                 orderRepository.save(order);
             }
 
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "STOCK_RESERVATION_FAILED", event.getProductId());
+
         } catch (Exception e) {
             log.error("재고 예약 실패 처리 중 오류: orderId={}", event.getOrderId(), e);
         }
@@ -183,6 +210,14 @@ public class SagaOrchestrator {
         log.info("결제 완료 수신: orderId={}, success={}",
                 event.getOrderId(), event.isSuccess());
 
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "PAYMENT_COMPLETED", null);
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
+
         try {
             Orders order = orderRepository.findById(Long.parseLong(event.getOrderId()))
                     .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다: " + event.getOrderId()));
@@ -213,6 +248,9 @@ public class SagaOrchestrator {
                 handlePaymentFailure(event);
             }
 
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "PAYMENT_COMPLETED", null);
+
         } catch (Exception e) {
             log.error("결제 완료 처리 중 오류: orderId={}", event.getOrderId(), e);
             handlePaymentFailure(event);
@@ -228,7 +266,17 @@ public class SagaOrchestrator {
     public void handlePaymentFailed(PaymentFailedEvent event) {
         log.error("결제 실패 수신: orderId={}, reason={}",
                 event.getOrderId(), event.getReason());
+
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "PAYMENT_FAILED", null);
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
+
         handlePaymentFailure(event);
+        markEventAsProcessed(event.getOrderId(), "PAYMENT_FAILED", null);
     }
 
     /**
@@ -301,6 +349,29 @@ public class SagaOrchestrator {
 
         } catch (Exception e) {
             log.error("재고 복구 이벤트 발행 실패: ", e);
+        }
+    }
+
+    // ==================== 멱등성 처리 헬퍼 메서드 ====================
+
+    /**
+     * 이벤트가 이미 처리되었는지 확인
+     */
+    private boolean isEventAlreadyProcessed(String eventId) {
+        return processedEventRepository.existsById(eventId);
+    }
+
+    /**
+     * 이벤트 처리 완료 기록
+     */
+    private void markEventAsProcessed(String aggregateId, String eventType, String subId) {
+        try {
+            ProcessedEvent processedEvent = ProcessedEvent.create(
+                    aggregateId, eventType, subId, SERVICE_NAME);
+            processedEventRepository.save(processedEvent);
+            log.debug("이벤트 처리 완료 기록: {}", processedEvent.getEventId());
+        } catch (Exception e) {
+            log.error("이벤트 처리 기록 실패 (무시됨): {}", e.getMessage());
         }
     }
 }

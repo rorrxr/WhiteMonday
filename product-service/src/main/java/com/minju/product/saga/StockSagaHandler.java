@@ -3,6 +3,8 @@ package com.minju.product.saga;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minju.common.dlq.DeadLetterEvent;
 import com.minju.common.dlq.DeadLetterEventRepository;
+import com.minju.common.idempotency.ProcessedEvent;
+import com.minju.common.idempotency.ProcessedEventRepository;
 import com.minju.common.kafka.stock.StockReservationFailedEvent;
 import com.minju.common.kafka.stock.StockReservationRequestEvent;
 import com.minju.common.kafka.stock.StockReservedEvent;
@@ -22,12 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class StockSagaHandler {
 
+    private static final String SERVICE_NAME = "STOCK_SAGA";
+    private static final String REDIS_CB = "redis-operation";
+
     private final StockService stockService;
     private final OutboxEventPublisher outboxPublisher;
     private final DeadLetterEventRepository deadLetterEventRepository;
+    private final ProcessedEventRepository processedEventRepository;
     private final ObjectMapper objectMapper;
-
-    private static final String REDIS_CB = "redis-operation";
 
     /**
      * 재고 예약 요청 처리 - Outbox 패턴 적용
@@ -40,6 +44,14 @@ public class StockSagaHandler {
     public void handleStockReservationRequest(StockReservationRequestEvent event) {
         log.info("재고 예약 요청 수신: orderId={}, productId={}, quantity={}",
                 event.getOrderId(), event.getProductId(), event.getQuantity());
+
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "STOCK_RESERVATION_REQUESTED", event.getProductId());
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
 
         try {
             Long productId = Long.parseLong(event.getProductId());
@@ -81,6 +93,9 @@ public class StockSagaHandler {
                         "재고 부족 (현재: " + currentStock + ", 요청: " + event.getQuantity() + ")");
             }
 
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "STOCK_RESERVATION_REQUESTED", event.getProductId());
+
         } catch (Exception e) {
             log.error("재고 예약 처리 중 오류: orderId={}", event.getOrderId(), e);
             publishStockReservationFailedEvent(event, "재고 처리 오류: " + e.getMessage());
@@ -98,6 +113,14 @@ public class StockSagaHandler {
         log.info("재고 복구 요청 수신: orderId={}, productId={}, quantity={}",
                 event.getOrderId(), event.getProductId(), event.getQuantity());
 
+        // 멱등성 체크
+        String eventId = ProcessedEvent.generateEventId(
+                event.getOrderId(), "STOCK_RESTORE", event.getProductId());
+        if (isEventAlreadyProcessed(eventId)) {
+            log.warn("중복 이벤트 무시: {}", eventId);
+            return;
+        }
+
         try {
             Long productId = Long.parseLong(event.getProductId());
 
@@ -106,6 +129,9 @@ public class StockSagaHandler {
 
             log.info("재고 복구 완료 - productId: {}, quantity: {}",
                     productId, event.getQuantity());
+
+            // 처리 완료 기록
+            markEventAsProcessed(event.getOrderId(), "STOCK_RESTORE", event.getProductId());
 
         } catch (Exception e) {
             log.error("재고 복구 실패: orderId={}", event.getOrderId(), e);
@@ -196,6 +222,29 @@ public class StockSagaHandler {
 
         } catch (Exception e) {
             log.error("재고 예약 실패 이벤트 저장 중 오류: ", e);
+        }
+    }
+
+    // ==================== 멱등성 처리 헬퍼 메서드 ====================
+
+    /**
+     * 이벤트가 이미 처리되었는지 확인
+     */
+    private boolean isEventAlreadyProcessed(String eventId) {
+        return processedEventRepository.existsById(eventId);
+    }
+
+    /**
+     * 이벤트 처리 완료 기록
+     */
+    private void markEventAsProcessed(String aggregateId, String eventType, String subId) {
+        try {
+            ProcessedEvent processedEvent = ProcessedEvent.create(
+                    aggregateId, eventType, subId, SERVICE_NAME);
+            processedEventRepository.save(processedEvent);
+            log.debug("이벤트 처리 완료 기록: {}", processedEvent.getEventId());
+        } catch (Exception e) {
+            log.error("이벤트 처리 기록 실패 (무시됨): {}", e.getMessage());
         }
     }
 }
