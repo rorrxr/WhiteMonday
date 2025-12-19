@@ -29,7 +29,6 @@ public class CartController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(
-                        HttpStatus.CREATED.value(),
                         "장바구니에 상품이 추가되었습니다.",
                         response
                 ));
