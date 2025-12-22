@@ -63,8 +63,27 @@ dependencies {
 	implementation 'org.springframework.kafka:spring-kafka'
 
 	// Test
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'                  //
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// 테스트 코드에서도 lombok 사용 가능하게 설정
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// H2 Database (테스트용)
+	testImplementation 'com.h2database:h2:2.2.224'
+
+	// Kafka 테스트
+	testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+	// Awaitility - 비동기 테스트용
+	testImplementation 'org.awaitility:awaitility:4.2.0'
+
+	// Testcontainers
+	testImplementation 'org.testcontainers:testcontainers:1.19.3'
+	testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+	testImplementation 'org.testcontainers:mysql:1.19.3'
+	testImplementation 'org.testcontainers:kafka:1.19.3'
 }
 dependencyManagement {
 	imports {
