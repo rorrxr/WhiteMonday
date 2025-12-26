@@ -8,45 +8,179 @@ import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Collections;
+import java.util.List;
 
+/**
+ * Lua Script 기반 재고 관리 서비스
+ * - RLock 대신 Lua Script로 원자적 연산 수행
+ * - 네트워크 왕복 최소화
+ * - 완전 원자적 재고 차감/복구
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class StockService {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final RedissonClient redissonClient;
     private final ProductRepository productRepository;
 
-    private static final String STOCK_KEY_PREFIX = "product:stock:";
+    // Lua Script Beans
+    private final RedisScript<Long> decreaseStockScript;
+    private final RedisScript<Long> restoreStockScript;
+    private final RedisScript<Long> decreaseStockWithRateLimitScript;
 
+    private static final String STOCK_KEY_PREFIX = "product:stock:";
+    private static final String RATE_LIMIT_KEY_PREFIX = "rate:";
+
+    // Lua Script 반환 코드
+    private static final long RESULT_OUT_OF_STOCK = -1L;
+    private static final long RESULT_PRODUCT_NOT_FOUND = -2L;
+    private static final long RESULT_RATE_LIMIT_EXCEEDED = -3L;
+
+    // Rate Limit 설정
+    private static final int DEFAULT_RATE_LIMIT = 5;  // 기본 요청 제한 횟수
+    private static final int RATE_LIMIT_EXPIRE_SECONDS = 60;  // 제한 시간 (초)
+
+    /**
+     * Lua Script를 사용한 재고 차감 (원자적 연산)
+     * - 락 없이 완전 원자적 처리
+     * - 네트워크 왕복 1회
+     */
     @Retry(name = "stock-operation", fallbackMethod = "decreaseStockFallback")
     @CircuitBreaker(name = "redis-operation", fallbackMethod = "decreaseStockCircuitFallback")
     @Transactional
     public boolean decreaseStockWithTransaction(Long productId, int quantity) {
-        String lockKey = "stock:lock:" + productId;
-        RLock lock = redissonClient.getLock(lockKey);
+        String stockKey = STOCK_KEY_PREFIX + productId;
 
         try {
-            // 분산 락 획득 (3초 대기, 10초 유지)
-            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
-                return decreaseStockInternal(productId, quantity);
-            } else {
-                throw new RuntimeException("재고 처리 중 락 획득 실패");
+            // Redis에 재고가 없으면 DB에서 로드
+            ensureStockInRedis(productId);
+
+            // Lua Script 실행 (원자적 재고 차감)
+            Long result = redisTemplate.execute(
+                    decreaseStockScript,
+                    Collections.singletonList(stockKey),
+                    String.valueOf(quantity)
+            );
+
+            if (result == null) {
+                log.error("Lua Script 실행 실패 - productId: {}", productId);
+                return false;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("재고 처리 중 인터럽트 발생", e);
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
+
+            if (result == RESULT_OUT_OF_STOCK) {
+                log.warn("재고 부족 - productId: {}, 요청수량: {}", productId, quantity);
+                return false;
             }
+
+            if (result == RESULT_PRODUCT_NOT_FOUND) {
+                log.warn("상품 재고 키 없음 - productId: {}", productId);
+                return false;
+            }
+
+            log.info("재고 감소 성공 (Lua) - productId: {}, 감소수량: {}, 남은재고: {}",
+                    productId, quantity, result);
+            return true;
+
+        } catch (Exception e) {
+            log.error("재고 감소 처리 중 오류: ", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Rate Limit 포함 재고 차감
+     * - 사용자별 요청 제한 + 재고 차감을 원자적으로 처리
+     */
+    @Retry(name = "stock-operation", fallbackMethod = "decreaseStockWithRateLimitFallback")
+    @CircuitBreaker(name = "redis-operation", fallbackMethod = "decreaseStockWithRateLimitCircuitFallback")
+    @Transactional
+    public boolean decreaseStockWithRateLimit(Long productId, Long userId, int quantity) {
+        String stockKey = STOCK_KEY_PREFIX + productId;
+        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + userId + ":" + productId;
+
+        try {
+            ensureStockInRedis(productId);
+
+            Long result = redisTemplate.execute(
+                    decreaseStockWithRateLimitScript,
+                    List.of(stockKey, rateLimitKey),
+                    String.valueOf(quantity),
+                    String.valueOf(DEFAULT_RATE_LIMIT),
+                    String.valueOf(RATE_LIMIT_EXPIRE_SECONDS)
+            );
+
+            if (result == null) {
+                log.error("Lua Script 실행 실패 - productId: {}", productId);
+                return false;
+            }
+
+            switch (result.intValue()) {
+                case -1:
+                    log.warn("재고 부족 - productId: {}, 요청수량: {}", productId, quantity);
+                    return false;
+                case -2:
+                    log.warn("상품 재고 키 없음 - productId: {}", productId);
+                    return false;
+                case -3:
+                    log.warn("Rate Limit 초과 - userId: {}, productId: {}", userId, productId);
+                    throw new RateLimitExceededException("요청 제한을 초과했습니다. 잠시 후 다시 시도해주세요.");
+                default:
+                    log.info("재고 감소 성공 (Lua+RateLimit) - productId: {}, userId: {}, 남은재고: {}",
+                            productId, userId, result);
+                    return true;
+            }
+
+        } catch (RateLimitExceededException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("재고 감소 처리 중 오류: ", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Lua Script를 사용한 재고 복구 (원자적 연산)
+     */
+    @Transactional
+    public void restoreStock(Long productId, int quantity) {
+        String stockKey = STOCK_KEY_PREFIX + productId;
+
+        try {
+            // Lua Script 실행 (원자적 재고 복구)
+            Long newStock = redisTemplate.execute(
+                    restoreStockScript,
+                    Collections.singletonList(stockKey),
+                    String.valueOf(quantity)
+            );
+
+            log.info("재고 복구 완료 (Lua) - productId: {}, 복구수량: {}, 현재재고: {}",
+                    productId, quantity, newStock);
+
+            // DB에도 반영
+            restoreStockInDatabase(productId, quantity);
+
+        } catch (Exception e) {
+            log.error("재고 복구 실패: ", e);
+            throw new RuntimeException("재고 복구 실패", e);
+        }
+    }
+
+    /**
+     * Redis에 재고가 없으면 DB에서 로드
+     */
+    private void ensureStockInRedis(Long productId) {
+        String stockKey = STOCK_KEY_PREFIX + productId;
+        Object stock = redisTemplate.opsForValue().get(stockKey);
+
+        if (stock == null) {
+            int dbStock = getAndCacheStockFromDatabase(productId);
+            log.info("DB에서 재고 로드 - productId: {}, stock: {}", productId, dbStock);
         }
     }
 
@@ -56,55 +190,15 @@ public class StockService {
         String stockKey = STOCK_KEY_PREFIX + productId;
 
         try {
-            Integer stock = (Integer) redisTemplate.opsForValue().get(stockKey);
-            if (stock != null) {
-                return stock;
+            Object stockObj = redisTemplate.opsForValue().get(stockKey);
+            if (stockObj != null) {
+                return ((Number) stockObj).intValue();
             }
 
-            // Redis에 없으면 DB에서 조회 후 Redis에 저장
             return getAndCacheStockFromDatabase(productId);
 
         } catch (Exception e) {
             log.error("Redis에서 재고 조회 실패: ", e);
-            throw e;
-        }
-    }
-
-    private boolean decreaseStockInternal(Long productId, int quantity) {
-        String stockKey = STOCK_KEY_PREFIX + productId;
-
-        try {
-            // Redis에서 재고 확인
-            Integer currentStock = (Integer) redisTemplate.opsForValue().get(stockKey);
-
-            if (currentStock == null) {
-                // Redis에 재고 정보가 없으면 DB에서 조회
-                currentStock = getAndCacheStockFromDatabase(productId);
-            }
-
-            if (currentStock < quantity) {
-                log.warn("재고 부족 - productId: {}, 현재재고: {}, 요청수량: {}",
-                        productId, currentStock, quantity);
-                return false;
-            }
-
-            // 재고 감소
-            Long newStock = redisTemplate.opsForValue().decrement(stockKey, quantity);
-
-            if (newStock < 0) {
-                // 음수가 되면 롤백
-                redisTemplate.opsForValue().increment(stockKey, quantity);
-                log.warn("재고 감소 후 음수 - 롤백 처리");
-                return false;
-            }
-
-            // 주기적으로 DB 동기화 (별도 스케줄러에서 처리)
-            log.info("재고 감소 성공 - productId: {}, 감소수량: {}, 남은재고: {}",
-                    productId, quantity, newStock);
-            return true;
-
-        } catch (Exception e) {
-            log.error("재고 감소 처리 중 오류: ", e);
             throw e;
         }
     }
@@ -115,19 +209,16 @@ public class StockService {
                 .orElseThrow(() -> new RuntimeException("상품을 찾을 수 없습니다: " + productId));
 
         int stock = product.getStock();
-
-        // Redis에 캐시
         String stockKey = STOCK_KEY_PREFIX + productId;
         redisTemplate.opsForValue().set(stockKey, stock);
 
         return stock;
     }
 
-    // Fallback Methods
+    // ==================== Fallback Methods ====================
+
     public boolean decreaseStockFallback(Long productId, int quantity, Exception ex) {
         log.error("재고 감소 재시도 실패 - productId: {}, error: {}", productId, ex.getMessage());
-
-        // DB에서 직접 처리 시도
         try {
             return decreaseStockInDatabase(productId, quantity);
         } catch (Exception dbEx) {
@@ -141,6 +232,22 @@ public class StockService {
         return decreaseStockInDatabase(productId, quantity);
     }
 
+    public boolean decreaseStockWithRateLimitFallback(Long productId, Long userId, int quantity, Exception ex) {
+        log.error("Rate Limit 재고 감소 실패 - productId: {}, userId: {}", productId, userId);
+        if (ex instanceof RateLimitExceededException) {
+            throw (RateLimitExceededException) ex;
+        }
+        return decreaseStockInDatabase(productId, quantity);
+    }
+
+    public boolean decreaseStockWithRateLimitCircuitFallback(Long productId, Long userId, int quantity, Exception ex) {
+        log.error("Rate Limit 재고 감소 Circuit Breaker 활성화 - productId: {}", productId);
+        if (ex instanceof RateLimitExceededException) {
+            throw (RateLimitExceededException) ex;
+        }
+        return decreaseStockInDatabase(productId, quantity);
+    }
+
     public int getStockFromDbFallback(Long productId, Exception ex) {
         log.warn("Redis 재고 조회 실패, DB에서 조회 - productId: {}", productId);
         return getStockFromDatabase(productId);
@@ -150,6 +257,8 @@ public class StockService {
         log.error("재고 조회 Circuit Breaker 활성화 - productId: {}", productId);
         return getStockFromDatabase(productId);
     }
+
+    // ==================== DB 직접 처리 ====================
 
     public StockResponse decreaseStock(Long productId, int quantity) {
         boolean success = decreaseStockWithTransaction(productId, quantity);
@@ -164,6 +273,7 @@ public class StockService {
         if (product.getStock() >= quantity) {
             product.setStock(product.getStock() - quantity);
             productRepository.save(product);
+            log.info("DB 재고 감소 완료 - productId: {}, 감소수량: {}", productId, quantity);
             return true;
         }
         return false;
@@ -173,36 +283,6 @@ public class StockService {
         return productRepository.findById(productId)
                 .map(Product::getStock)
                 .orElse(0);
-    }
-
-    @Transactional
-    public void restoreStock(Long productId, int quantity) {
-        String lockKey = "stock:lock:" + productId;
-        RLock lock = redissonClient.getLock(lockKey);
-
-        try {
-            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
-                String stockKey = STOCK_KEY_PREFIX + productId;
-
-                // Redis에서 재고 복구
-                Long newStock = redisTemplate.opsForValue().increment(stockKey, quantity);
-                log.info("재고 복구 완료 - productId: {}, 복구수량: {}, 현재재고: {}",
-                        productId, quantity, newStock);
-
-                // DB에도 반영
-                restoreStockInDatabase(productId, quantity);
-
-            } else {
-                throw new RuntimeException("재고 복구 중 락 획득 실패");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("재고 복구 중 인터럽트 발생", e);
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
     }
 
     @Transactional
@@ -217,7 +297,14 @@ public class StockService {
 
         } catch (Exception e) {
             log.error("DB 재고 복구 실패: ", e);
-            // Redis는 복구되었지만 DB 복구 실패시 별도 처리 필요
+        }
+    }
+
+    // ==================== Custom Exception ====================
+
+    public static class RateLimitExceededException extends RuntimeException {
+        public RateLimitExceededException(String message) {
+            super(message);
         }
     }
 }
