@@ -175,9 +175,12 @@ public class OrderService {
 
     // ==================== 기존 메서드들 ====================
 
+    /**
+     * 사용자 주문 목록 조회 (QueryDSL - fetchJoin으로 N+1 해결)
+     */
     @Transactional(readOnly = true)
     public List<OrderResponseDto> getOrders(Long userId) {
-        List<Orders> orders = orderRepository.findByUserId(userId);
+        List<Orders> orders = orderRepository.findByUserIdWithItems(userId);
         return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList());
     }
 
@@ -243,23 +246,31 @@ public class OrderService {
 
     /**
      * 주문 상태 자동 업데이트 (스케줄러)
+     * QueryDSL로 조건에 맞는 주문만 조회하여 성능 최적화
      */
     @Transactional
     public void updateOrderStatus() {
-        List<Orders> orders = orderRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
 
-        orders.forEach(order -> {
-            if ("PENDING".equals(order.getOrderStatus()) &&
-                    order.getCreatedAt().plusDays(1).isBefore(now)) {
-                order.setOrderStatus("SHIPPING");
-            } else if ("SHIPPING".equals(order.getOrderStatus()) &&
-                    order.getCreatedAt().plusDays(2).isBefore(now)) {
-                order.setOrderStatus("DELIVERED");
-            }
-        });
+        // PENDING → SHIPPING (1일 경과)
+        List<Orders> pendingOrders = orderRepository.findOrdersForStatusUpdate(
+                List.of("PENDING"),
+                now.minusDays(1)
+        );
+        pendingOrders.forEach(order -> order.setOrderStatus("SHIPPING"));
 
-        orderRepository.saveAll(orders);
+        // SHIPPING → DELIVERED (2일 경과)
+        List<Orders> shippingOrders = orderRepository.findOrdersForStatusUpdate(
+                List.of("SHIPPING"),
+                now.minusDays(2)
+        );
+        shippingOrders.forEach(order -> order.setOrderStatus("DELIVERED"));
+
+        orderRepository.saveAll(pendingOrders);
+        orderRepository.saveAll(shippingOrders);
+
+        log.info("주문 상태 업데이트 완료 - PENDING→SHIPPING: {}건, SHIPPING→DELIVERED: {}건",
+                pendingOrders.size(), shippingOrders.size());
     }
 
     private Orders getOrder(Long orderId, Long userId) {

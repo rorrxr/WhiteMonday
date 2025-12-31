@@ -2,21 +2,23 @@ package com.minju.product.service;
 
 import com.minju.product.dto.ProductRequestDto;
 import com.minju.product.dto.ProductResponseDto;
+import com.minju.product.dto.ProductSearchCondition;
 import com.minju.product.entity.Product;
 import com.minju.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -78,6 +80,64 @@ public class ProductService {
                 .toList();
     }
 
+    /**
+     * 동적 상품 검색 (QueryDSL)
+     * - 키워드, 가격 범위, 플래시세일 여부, 재고 여부로 필터링
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponseDto> searchProducts(ProductSearchCondition condition, Pageable pageable) {
+        Page<Product> products = productRepository.searchProducts(condition, pageable);
+        return products.map(product -> new ProductResponseDto(
+                product.getId(),
+                product.getTitle(),
+                product.getDescription(),
+                product.getPrice(),
+                getStock(product.getId()),
+                product.isFlashSale(),
+                product.getFlashSaleStartTime(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        ));
+    }
+
+    /**
+     * 플래시세일 상품 조회 (페이징)
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponseDto> getFlashSaleProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findFlashSaleProducts(pageable);
+        return products.map(product -> new ProductResponseDto(
+                product.getId(),
+                product.getTitle(),
+                product.getDescription(),
+                product.getPrice(),
+                getStock(product.getId()),
+                product.isFlashSale(),
+                product.getFlashSaleStartTime(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        ));
+    }
+
+    /**
+     * 재고 있는 상품만 조회 (페이징)
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponseDto> getAvailableProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findAvailableProducts(pageable);
+        return products.map(product -> new ProductResponseDto(
+                product.getId(),
+                product.getTitle(),
+                product.getDescription(),
+                product.getPrice(),
+                getStock(product.getId()),
+                product.isFlashSale(),
+                product.getFlashSaleStartTime(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        ));
+    }
+
     // 상품 상세 조회
     public ProductResponseDto getProductById(Long productId) {
         Product product = productRepository.findById(productId)
@@ -113,20 +173,26 @@ public class ProductService {
         return now.isAfter(flashSaleStartTime);
     }
 
-    // 스케줄링 작업: 선착순 상품 만료 처리 (5분마다 실행)
+    /**
+     * 스케줄링 작업: 선착순 상품 만료 처리 (5분마다 실행)
+     * QueryDSL로 만료된 상품만 조회하여 성능 최적화
+     */
     @Scheduled(fixedRate = 300000) // 5분마다 실행
     @Transactional
     public void processFlashSaleTimeouts() {
         log.info("스케줄링 작업 시작: 선착순 상품 및 만료 처리");
 
-        List<Product> flashSaleProducts = productRepository.findByFlashSaleTrue();
+        String currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        List<Product> expiredProducts = productRepository.findExpiredFlashSaleProducts(currentTime);
 
-        for (Product product : flashSaleProducts) {
-            if (!isFlashSaleAvailable(product)) {
-                log.info("선착순 상품 만료 처리: {}", product.getTitle());
-                product.setFlashSale(false); // 만료된 상품 처리
-                productRepository.save(product);
-            }
+        for (Product product : expiredProducts) {
+            log.info("선착순 상품 만료 처리: {}", product.getTitle());
+            product.setFlashSale(false);
+        }
+
+        if (!expiredProducts.isEmpty()) {
+            productRepository.saveAll(expiredProducts);
+            log.info("만료된 플래시세일 상품 {}건 처리 완료", expiredProducts.size());
         }
 
         log.info("스케줄링 작업 완료");
