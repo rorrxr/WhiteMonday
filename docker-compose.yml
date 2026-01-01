@@ -169,6 +169,21 @@ services:
       - "8085:8085"
     networks:
       - commerce-network
+  cart-service:
+    image: cart-service:latest
+    container_name: cart-service
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "8086:8086"
+    networks:
+      - commerce-network
   prometheus:
     image: prom/prometheus:latest
     container_name: whitemonday-prometheus
